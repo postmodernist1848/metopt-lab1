@@ -146,9 +146,9 @@ def dichotomy(a: float, b: float, func: Func, eps: float) -> float:
 def armijo(x_k: np.ndarray, func: BiFunc) -> float:
     grad = func.gradient(x_k)
     derivative: float = -float(grad @ grad.T)
-    c1 = random.random() * 0.6 + 0.2
-    q = random.random() * 0.6 + 0.2
-    alpha: float = -func(x_k) / (derivative * c1)
+    c1 = random.random() * 0.8 + 0.1
+    q = random.random() * 0.8 + 0.1
+    alpha: float = abs(func(x_k) / (derivative * c1))
     
     for _ in range(MAX_ITERATION_LIMIT):
         l_alpha: float = func(x_k) + c1*alpha*derivative
