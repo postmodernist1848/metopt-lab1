@@ -1,8 +1,5 @@
-import matplotlib.pyplot as plt
-from dataclasses import dataclass
 from typing import Callable, Protocol
 import numpy as np
-from typing import Callable, Protocol
 import random
 
 type LearningRateFunc = Callable[[int], float]
@@ -34,6 +31,22 @@ class Quadratic:
 
     def gradient(self, x: np.ndarray) -> np.ndarray:
         return 2 * self.A @ x + self.B
+
+class BiFuncCallableWrapper:
+    f: Callable[[float, float], float]
+
+    def __init__(self, f: Callable[[float, float], float]):
+        self.f = f
+
+    def __call__(self, x: np.ndarray) -> float:
+        return self.f(x[0], x[1])
+
+    def gradient(self, x: np.ndarray) -> np.ndarray:
+        h = 0.001
+        d1 = (self.f(x[0] + h, x[1]) - self.f(x[0] - h, x[1])) / (2*h)
+        d2 = (self.f(x[0], x[1] + h) - self.f(x[0], x[1] - h)) / (2*h)
+        g = np.array([d1, d2])
+        return g
 
 GRADIENT_DESCENT_LOGGING = True
 
@@ -130,12 +143,12 @@ def dichotomy(a: float, b: float, func: Func, eps: float) -> float:
     return c
 
 
-def armijo(x_k: np.ndarray, func: Quadratic) -> float:
+def armijo(x_k: np.ndarray, func: BiFunc) -> float:
     grad = func.gradient(x_k)
     derivative: float = -float(grad @ grad.T)
-    c1 = random.random()
-    q = random.random()
-    alpha: float = -abs(func(x_k)) / (derivative * c1)
+    c1 = random.random() * 0.6 + 0.2
+    q = random.random() * 0.6 + 0.2
+    alpha: float = -func(x_k) / (derivative * c1)
     
     for _ in range(MAX_ITERATION_LIMIT):
         l_alpha: float = func(x_k) + c1*alpha*derivative
