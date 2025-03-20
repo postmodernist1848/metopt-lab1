@@ -110,7 +110,7 @@ def find_b(func: Func) -> float:
     MAX_X = 10000
     curr_val = func(0)
     b = 1
-    while (abs(b) < MAX_X and func(b) < curr_val):
+    while (b < MAX_X and func(b) < curr_val):
         b *= 2
     return b
 
