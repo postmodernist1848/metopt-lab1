@@ -49,7 +49,25 @@ class BiFuncCallableWrapper:
         g = np.array([d1, d2])
         return g
 
-GRADIENT_DESCENT_LOGGING = False
+
+class BiFuncStatsDecorator:
+    f: BiFunc
+    call_count: int = 0
+    gradient_count: int = 0
+
+    def __init__(self, f: BiFunc):
+        self.f = f
+
+    def __call__(self, x: np.ndarray):
+        self.call_count += 1
+        return self.f.__call__(x)
+
+    def gradient(self, x: np.ndarray):
+        self.gradient_count += 1
+        return self.f.gradient(x)
+
+    def reset(self):
+        self.gradient_count = self.call_count = 0
 
 
 def gradient_descent(x_0: np.ndarray,
@@ -62,9 +80,10 @@ def gradient_descent(x_0: np.ndarray,
 
     while True:
         grad = func.gradient(x)
-        
+
         if (grad.T @ grad) < 1e-9:
             EPS = 1e-7
+
             def random_eps():
                 return random.choice([-EPS, EPS])
             grad += np.array([random_eps(), random_eps()])
@@ -76,9 +95,8 @@ def gradient_descent(x_0: np.ndarray,
         trajectory.append(x.copy())
 
         if sc(x, prev) or k > MAX_ITERATION_LIMIT:
-            print(f'iterations: {k}, x: {x}, f: {func(x)}')
             break
-        elif GRADIENT_DESCENT_LOGGING:
+        if False:
             print(f'k: {k}, x: {x}, f: {func(x)}')
 
         k += 1
