@@ -1,6 +1,8 @@
 from typing import Callable, Protocol
 import numpy as np
 import random
+import functools
+import math
 
 MAX_ITERATION_LIMIT = 10000
 
@@ -46,6 +48,19 @@ class BiFuncCallableWrapper:
         g = np.array([d1, d2])
         return g
 
+class NoisyWrapper:
+    f: BiFunc
+    factor: float
+
+    def __init__(self, f: BiFunc, factor: float = 1.0):
+        self.f = f
+        self.factor = factor
+        
+    def __call__(self, x: np.ndarray):
+        return self.f.__call__(x) + random.random() * self.factor
+
+    def gradient(self, x: np.ndarray):
+        return self.f.gradient(x)
 
 class BiFuncStatsDecorator:
     f: BiFunc
@@ -100,6 +115,25 @@ def gradient_descent(x_0: np.ndarray,
 
     return np.array(trajectory)
 
+def constant_h(c: float) -> LearningRateFunc:
+    return lambda k: c
+
+
+def geometric_h() -> LearningRateFunc:
+    h0 = 1
+    return lambda k: h0 / 2**k
+
+
+def exponential_decay(λ: float) -> LearningRateFunc:
+    assert λ > 0
+    h0 = 1
+    return lambda k: h0 * math.exp(-λ * k)
+
+
+def polynomial_decay(α: float, β: float) -> LearningRateFunc:
+    assert α > 0
+    assert β > 0
+    return lambda k: 1/math.sqrt(k + 1) * (β * k + 1) ** -α
 
 def learning_rate_scheduling(x_0: np.ndarray,
                              func: BiFunc,
