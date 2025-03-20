@@ -49,8 +49,7 @@ class BiFuncCallableWrapper:
         g = np.array([d1, d2])
         return g
 
-
-GRADIENT_DESCENT_LOGGING = True
+GRADIENT_DESCENT_LOGGING = False
 
 
 def gradient_descent(x_0: np.ndarray,
@@ -63,16 +62,24 @@ def gradient_descent(x_0: np.ndarray,
 
     while True:
         grad = func.gradient(x)
+        
+        if (grad.T @ grad) < 1e-9:
+            EPS = 1e-7
+            def random_eps():
+                return random.choice([-EPS, EPS])
+            grad += np.array([random_eps(), random_eps()])
+
         prev = x.copy()
 
         h = step_selector(k, x, grad, func)
         x = x - h * grad
         trajectory.append(x.copy())
 
-        if GRADIENT_DESCENT_LOGGING:
-            print(f'k: {k}, x: {x}, f: {func(x)}')
         if sc(x, prev) or k > MAX_ITERATION_LIMIT:
+            print(f'iterations: {k}, x: {x}, f: {func(x)}')
             break
+        elif GRADIENT_DESCENT_LOGGING:
+            print(f'k: {k}, x: {x}, f: {func(x)}')
 
         k += 1
 
@@ -103,7 +110,7 @@ def steepest_gradient_descent_armijo(x_0: np.ndarray,
                                      func: BiFunc,
                                      sc: StopCondition) -> np.ndarray:
     def step_selector(k, x, grad, func):
-        return armijo(x, func)
+        return armijo(x, func, grad)
 
     return gradient_descent(x_0, func, step_selector, sc)
 
@@ -145,8 +152,7 @@ def dichotomy(a: float, b: float, func: Func, eps: float) -> float:
     return c
 
 
-def armijo(x_k: np.ndarray, func: BiFunc) -> float:
-    grad = func.gradient(x_k)
+def armijo(x_k: np.ndarray, func: BiFunc, grad: np.ndarray) -> float:
     derivative: float = -float(grad @ grad.T)
     c1 = random.random() * 0.8 + 0.1
     q = random.random() * 0.8 + 0.1
