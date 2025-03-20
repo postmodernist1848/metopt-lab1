@@ -2,18 +2,15 @@ from typing import Callable, Protocol
 import numpy as np
 import random
 
-type LearningRateFunc = Callable[[int], float]
-type StopCondition = Callable[[np.ndarray, np.ndarray], bool]
-
 MAX_ITERATION_LIMIT = 10000
 
+type LearningRateFunc = Callable[[int], float]
+type StopCondition = Callable[[np.ndarray, np.ndarray], bool]
 type Func = Callable[[float], float]
-
 
 class BiFunc(Protocol):
     def __call__(self, x: np.ndarray) -> float: ...
     def gradient(self, x: np.ndarray) -> np.ndarray: ...
-
 
 class Quadratic:
     A: np.ndarray
