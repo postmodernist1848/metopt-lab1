@@ -32,6 +32,7 @@ class Quadratic:
     def gradient(self, x: np.ndarray) -> np.ndarray:
         return 2 * self.A @ x + self.B
 
+
 class BiFuncCallableWrapper:
     f: Callable[[float, float], float]
 
@@ -48,7 +49,9 @@ class BiFuncCallableWrapper:
         g = np.array([d1, d2])
         return g
 
+
 GRADIENT_DESCENT_LOGGING = True
+
 
 def gradient_descent(x_0: np.ndarray,
                      func: BiFunc,
@@ -63,7 +66,6 @@ def gradient_descent(x_0: np.ndarray,
         prev = x.copy()
 
         h = step_selector(k, x, grad, func)
-
         x = x - h * grad
         trajectory.append(x.copy())
 
@@ -87,19 +89,19 @@ def learning_rate_scheduling(x_0: np.ndarray,
 
 
 def steepest_gradient_descent_dichotomy(x_0: np.ndarray,
-                              func: BiFunc,
-                              eps: float,
-                              sc: StopCondition) -> np.ndarray:
+                                        func: BiFunc,
+                                        eps: float,
+                                        sc: StopCondition) -> np.ndarray:
     def step_selector(k, x, grad, func):
         def f(h): return func(x - h * grad)
         return dichotomy(0, find_b(f), f, eps)
 
     return gradient_descent(x_0, func, step_selector, sc)
 
+
 def steepest_gradient_descent_armijo(x_0: np.ndarray,
-                              func: BiFunc,
-                              eps: float,
-                              sc: StopCondition) -> np.ndarray:
+                                     func: BiFunc,
+                                     sc: StopCondition) -> np.ndarray:
     def step_selector(k, x, grad, func):
         return armijo(x, func)
 
@@ -148,8 +150,7 @@ def armijo(x_k: np.ndarray, func: BiFunc) -> float:
     derivative: float = -float(grad @ grad.T)
     c1 = random.random() * 0.8 + 0.1
     q = random.random() * 0.8 + 0.1
-    alpha: float = abs(func(x_k) / (derivative * c1))
-    
+    alpha: float = abs(func(x_k) / max(abs(derivative * c1), 1e-9))
     for _ in range(MAX_ITERATION_LIMIT):
         l_alpha: float = func(x_k) + c1*alpha*derivative
         if func(x_k - alpha*grad) < float(l_alpha):
