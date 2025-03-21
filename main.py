@@ -169,6 +169,13 @@ def steepest_gradient_descent_armijo(x_0: np.ndarray,
 
     return gradient_descent(x_0, func, step_selector, sc)
 
+def steepest_gradient_descent_wolfe(x_0: np.ndarray,
+                                     func: BiFunc,
+                                     sc: StopCondition) -> np.ndarray:
+    def step_selector(k, x, grad, func):
+        return wolfe(x, func, grad)
+
+    return gradient_descent(x_0, func, step_selector, sc)
 
 def find_b(func: Func) -> float:
     MAX_X = 10000
@@ -218,3 +225,29 @@ def armijo(x_k: np.ndarray, func: BiFunc, grad: np.ndarray) -> float:
             break
         alpha = q*alpha
     return float(alpha)
+
+def wolfe(x_k: np.ndarray, func: BiFunc, grad: np.ndarray) -> float:
+    derivative: float = -float(grad @ grad.T)
+    
+    # "c1 is usually chosen to be quite small while c2 is much larger"
+    c1 = random.random()*0.05 + 0.1
+    c2 = random.random()*0.05 + 0.9
+
+    alpha_left = 0
+    alpha_right = 1e10
+    func_x_k = func(x_k)
+    
+    for _ in range(MAX_ITERATION_LIMIT):
+        alpha = (alpha_left + alpha_right) / 2
+        if (func(x_k - alpha*grad) > func_x_k + c1*alpha*derivative):
+            alpha_right = alpha
+            continue
+        wolfe_grad = func.gradient(x_k - alpha*grad)
+        wolfe_derivative = -float(wolfe_grad @ wolfe_grad.T)
+        if (abs(wolfe_derivative) > c2*abs(derivative)):
+            alpha_left = alpha
+            continue
+        break
+
+    return float(alpha)
+
