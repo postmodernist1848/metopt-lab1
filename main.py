@@ -3,6 +3,7 @@ import numpy as np
 import random
 import functools
 import math
+from scipy.optimize import line_search
 
 MAX_ITERATION_LIMIT = 10000
 
@@ -177,6 +178,15 @@ def steepest_gradient_descent_wolfe(x_0: np.ndarray,
 
     return gradient_descent(x_0, func, step_selector, sc)
 
+def steepest_gradient_descent_scipy_wolfe(x_0: np.ndarray,
+                                     func: BiFunc,
+                                     sc: StopCondition) -> np.ndarray:
+    def step_selector(k, x, grad, func):
+        alpha = line_search(func, func.gradient, x, -grad)[0]
+        return alpha if alpha != None else armijo(x, func, grad)
+
+    return gradient_descent(x_0, func, step_selector, sc)
+
 def find_b(func: Func) -> float:
     MAX_X = 10000
     curr_val = func(0)
@@ -236,16 +246,17 @@ def wolfe(x_k: np.ndarray, func: BiFunc, grad: np.ndarray) -> float:
     alpha_left = 0
     alpha_right = 1e10
     func_x_k = func(x_k)
-    
+    alpha = 1
     for _ in range(MAX_ITERATION_LIMIT):
-        alpha = (alpha_left + alpha_right) / 2
         if (func(x_k - alpha*grad) > func_x_k + c1*alpha*derivative):
             alpha_right = alpha
+            alpha = (alpha_left + alpha_right) / 2
             continue
         wolfe_grad = func.gradient(x_k - alpha*grad)
-        wolfe_derivative = -float(wolfe_grad @ wolfe_grad.T)
+        wolfe_derivative = -float(wolfe_grad @ grad.T)
         if (abs(wolfe_derivative) > c2*abs(derivative)):
             alpha_left = alpha
+            alpha = (alpha_left + alpha_right) / 2
             continue
         break
 
