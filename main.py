@@ -4,6 +4,7 @@ import random
 import functools
 import math
 from scipy.optimize import line_search
+from typing import Union
 
 MAX_ITERATION_LIMIT = 10000
 
@@ -15,6 +16,7 @@ type Func = Callable[[float], float]
 class BiFunc(Protocol):
     def __call__(self, x: np.ndarray) -> float: ...
     def gradient(self, x: np.ndarray) -> np.ndarray: ...
+    def hessian(self, x: np.ndarray) -> np.ndarray: ...
 
 
 class Quadratic:
@@ -33,10 +35,14 @@ class Quadratic:
 
     def gradient(self, x: np.ndarray) -> np.ndarray:
         return 2 * self.A @ x + self.B
+    
+    def hessian(self, x: np.ndarray) -> np.ndarray:
+        return 2 * self.A
 
 
 class BiFuncCallableWrapper:
     f: Callable[[float, float], float]
+    h: float = 0.001
 
     def __init__(self, f: Callable[[float, float], float]):
         self.f = f
@@ -45,11 +51,32 @@ class BiFuncCallableWrapper:
         return self.f(x[0], x[1])
 
     def gradient(self, x: np.ndarray) -> np.ndarray:
-        h = 0.001
-        d1 = (self.f(x[0] + h, x[1]) - self.f(x[0] - h, x[1])) / (2*h)
-        d2 = (self.f(x[0], x[1] + h) - self.f(x[0], x[1] - h)) / (2*h)
+        d1 = (self.f(x[0] + self.h, x[1]) - self.f(x[0] - self.h, x[1])) / (2*self.h)
+        d2 = (self.f(x[0], x[1] + self.h) - self.f(x[0], x[1] - self.h)) / (2*self.h)
         g = np.array([d1, d2])
         return g
+    
+    def hessian(self, x: np.ndarray) -> np.ndarray:
+        x1, x2 = x
+
+        df_dx = lambda x, y: (self.f(x + self.h, y) - self.f(x - self.h, y)) / (2 * self.h)
+        df_dy = lambda x, y: (self.f(x, y + self.h) - self.f(x, y - self.h)) / (2 * self.h)
+        
+        # d²f/dx² = (df/dx(x+h, y) - df/dx(x-h, y)) / (2h)
+        d2f_dx2 = (df_dx(x1 + self.h, x2) - df_dx(x1 - self.h, x2)) / (2 * self.h)
+        
+        # d²f/dy² = (df/dy(x, y+h) - df/dy(x, y-h)) / (2h)
+        d2f_dy2 = (df_dy(x1, x2 + self.h) - df_dy(x1, x2 - self.h)) / (2 * self.h)
+        
+        # d²f/dxdy = d²f/dydx
+        d2f_dxdy = (df_dx(x1, x2 + self.h) - df_dx(x1, x2 - self.h)) / (2 * self.h)
+        
+        hessian = np.array([
+            [d2f_dx2, d2f_dxdy],
+            [d2f_dxdy, d2f_dy2]
+        ])
+        
+        return hessian
 
 
 class NoisyWrapper:
@@ -63,14 +90,18 @@ class NoisyWrapper:
     def __call__(self, x: np.ndarray):
         return self.f.__call__(x) + random.random() * self.factor
 
-    def gradient(self, x: np.ndarray):
+    def gradient(self, x: np.ndarray) -> np.ndarray:
         return self.f.gradient(x)
+    
+    def hessian(self, x: np.ndarray) -> np.ndarray:
+        return self.f.hessian(x)
 
 
 class BiFuncStatsDecorator:
     f: BiFunc
     call_count: int = 0
     gradient_count: int = 0
+    hessian_count: int = 0
 
     def __init__(self, f: BiFunc):
         self.f = f
@@ -79,17 +110,21 @@ class BiFuncStatsDecorator:
         self.call_count += 1
         return self.f.__call__(x)
 
-    def gradient(self, x: np.ndarray):
+    def gradient(self, x: np.ndarray) -> np.ndarray:
         self.gradient_count += 1
         return self.f.gradient(x)
 
+    def hessian(self, x: np.ndarray) -> np.ndarray:
+        hessian_count += 1
+        return self.f.hessian(x)
+
     def reset(self):
-        self.gradient_count = self.call_count = 0
+        self.gradient_count = self.call_count = hessian_count = 0
 
 
 def gradient_descent(x_0: np.ndarray,
                      func: BiFunc,
-                     step_selector: Callable[[int, np.ndarray, np.ndarray, BiFunc], float],
+                     step_selector: Callable[[int, np.ndarray, np.ndarray, BiFunc], Union[float, np.ndarray]],
                      sc: StopCondition) -> np.ndarray:
     x = x_0.copy()
     k = 0
@@ -108,7 +143,7 @@ def gradient_descent(x_0: np.ndarray,
         prev = x.copy()
 
         h = step_selector(k, x, grad, func)
-        x = x - h * grad
+        x = x - np.atleast_1d(h) @ grad
         trajectory.append(x.copy())
 
         if sc(x, prev) or k > MAX_ITERATION_LIMIT:
@@ -184,6 +219,14 @@ def steepest_gradient_descent_scipy_wolfe(x_0: np.ndarray,
     def step_selector(k, x, grad, func):
         alpha = line_search(func, func.gradient, x, -grad)[0]
         return alpha if alpha != None else armijo(x, func, grad)
+
+    return gradient_descent(x_0, func, step_selector, sc)
+
+def method_newton(x_0: np.ndarray,
+                  func: BiFunc,
+                  sc: StopCondition) -> np.ndarray:
+    def step_selector(k, x, grad, func: BiFunc):
+        return np.linalg.inv(func.hessian(x))
 
     return gradient_descent(x_0, func, step_selector, sc)
 
