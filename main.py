@@ -1,17 +1,15 @@
 from typing import Callable, Protocol
 import numpy as np
 import random
-import functools
 import math
 from scipy.optimize import line_search
-from typing import Union
+from scipy.optimize import fmin_bfgs
 
 MAX_ITERATION_LIMIT = 10000
 
 type LearningRateFunc = Callable[[int], float]
 type StopCondition = Callable[[np.ndarray, np.ndarray], bool]
 type Func = Callable[[float], float]
-
 
 class BiFunc(Protocol):
     def __call__(self, x: np.ndarray) -> float: ...
@@ -35,7 +33,7 @@ class Quadratic:
 
     def gradient(self, x: np.ndarray) -> np.ndarray:
         return 2 * self.A @ x + self.B
-    
+
     def hessian(self, x: np.ndarray) -> np.ndarray:
         return 2 * self.A
 
@@ -51,31 +49,35 @@ class BiFuncCallableWrapper:
         return self.f(x[0], x[1])
 
     def gradient(self, x: np.ndarray) -> np.ndarray:
-        d1 = (self.f(x[0] + self.h, x[1]) - self.f(x[0] - self.h, x[1])) / (2*self.h)
-        d2 = (self.f(x[0], x[1] + self.h) - self.f(x[0], x[1] - self.h)) / (2*self.h)
+        d1 = (self.f(x[0] + self.h, x[1]) -
+              self.f(x[0] - self.h, x[1])) / (2*self.h)
+        d2 = (self.f(x[0], x[1] + self.h) -
+              self.f(x[0], x[1] - self.h)) / (2*self.h)
         g = np.array([d1, d2])
         return g
-    
+
     def hessian(self, x: np.ndarray) -> np.ndarray:
         x1, x2 = x
 
-        df_dx = lambda x, y: (self.f(x + self.h, y) - self.f(x - self.h, y)) / (2 * self.h)
-        df_dy = lambda x, y: (self.f(x, y + self.h) - self.f(x, y - self.h)) / (2 * self.h)
-        
-        # d²f/dx² = (df/dx(x+h, y) - df/dx(x-h, y)) / (2h)
-        d2f_dx2 = (df_dx(x1 + self.h, x2) - df_dx(x1 - self.h, x2)) / (2 * self.h)
-        
-        # d²f/dy² = (df/dy(x, y+h) - df/dy(x, y-h)) / (2h)
-        d2f_dy2 = (df_dy(x1, x2 + self.h) - df_dy(x1, x2 - self.h)) / (2 * self.h)
-        
-        # d²f/dxdy = d²f/dydx
-        d2f_dxdy = (df_dx(x1, x2 + self.h) - df_dx(x1, x2 - self.h)) / (2 * self.h)
-        
+        # Use a central difference formula for better accuracy
+        # For f_xx (second derivative with respect to x)
+        f_xx = (self.f(x1 + self.h, x2) - 2 * self.f(x1, x2) +
+                self.f(x1 - self.h, x2)) / (self.h * self.h)
+
+        # For f_yy (second derivative with respect to y)
+        f_yy = (self.f(x1, x2 + self.h) - 2 * self.f(x1, x2) +
+                self.f(x1, x2 - self.h)) / (self.h * self.h)
+
+        # For f_xy (mixed derivative)
+        # Use the cross partial difference formula
+        f_xy = (self.f(x1 + self.h, x2 + self.h) - self.f(x1 + self.h, x2 - self.h) -
+                self.f(x1 - self.h, x2 + self.h) + self.f(x1 - self.h, x2 - self.h)) / (4 * self.h * self.h)
+
         hessian = np.array([
-            [d2f_dx2, d2f_dxdy],
-            [d2f_dxdy, d2f_dy2]
+            [f_xx, f_xy],
+            [f_xy, f_yy]
         ])
-        
+
         return hessian
 
 
@@ -92,7 +94,7 @@ class NoisyWrapper:
 
     def gradient(self, x: np.ndarray) -> np.ndarray:
         return self.f.gradient(x)
-    
+
     def hessian(self, x: np.ndarray) -> np.ndarray:
         return self.f.hessian(x)
 
@@ -115,16 +117,16 @@ class BiFuncStatsDecorator:
         return self.f.gradient(x)
 
     def hessian(self, x: np.ndarray) -> np.ndarray:
-        hessian_count += 1
+        self.hessian_count += 1
         return self.f.hessian(x)
 
     def reset(self):
-        self.gradient_count = self.call_count = hessian_count = 0
+        self.hessian_count = self.gradient_count = self.call_count = 0
 
 
 def gradient_descent(x_0: np.ndarray,
                      func: BiFunc,
-                     step_selector: Callable[[int, np.ndarray, np.ndarray, BiFunc], Union[float, np.ndarray]],
+                     step_selector: Callable[[int, np.ndarray, np.ndarray, BiFunc], float],
                      sc: StopCondition) -> np.ndarray:
     x = x_0.copy()
     k = 0
@@ -143,7 +145,7 @@ def gradient_descent(x_0: np.ndarray,
         prev = x.copy()
 
         h = step_selector(k, x, grad, func)
-        x = x - np.atleast_1d(h) @ grad
+        x = x - h * grad
         trajectory.append(x.copy())
 
         if sc(x, prev) or k > MAX_ITERATION_LIMIT:
@@ -205,30 +207,200 @@ def steepest_gradient_descent_armijo(x_0: np.ndarray,
 
     return gradient_descent(x_0, func, step_selector, sc)
 
+
 def steepest_gradient_descent_wolfe(x_0: np.ndarray,
-                                     func: BiFunc,
-                                     sc: StopCondition) -> np.ndarray:
+                                    func: BiFunc,
+                                    sc: StopCondition) -> np.ndarray:
     def step_selector(k, x, grad, func):
         return wolfe(x, func, grad)
 
     return gradient_descent(x_0, func, step_selector, sc)
 
+
 def steepest_gradient_descent_scipy_wolfe(x_0: np.ndarray,
-                                     func: BiFunc,
-                                     sc: StopCondition) -> np.ndarray:
+                                          func: BiFunc,
+                                          sc: StopCondition) -> np.ndarray:
     def step_selector(k, x, grad, func):
         alpha = line_search(func, func.gradient, x, -grad)[0]
         return alpha if alpha != None else armijo(x, func, grad)
 
     return gradient_descent(x_0, func, step_selector, sc)
 
-def method_newton(x_0: np.ndarray,
-                  func: BiFunc,
-                  sc: StopCondition) -> np.ndarray:
-    def step_selector(k, x, grad, func: BiFunc):
-        return np.linalg.inv(func.hessian(x))
 
-    return gradient_descent(x_0, func, step_selector, sc)
+def bfgs(x_0: np.ndarray,
+         func: BiFunc,
+         eps: float) -> np.ndarray:
+
+    k = 0
+    I = np.identity(2)
+    c = I
+    x = x_0
+    grad = func.gradient(x)
+    trajectory = [x.copy()]
+
+    while np.linalg.norm(grad) > eps and k < MAX_ITERATION_LIMIT:
+        p_k = -c @ grad
+        alpha = armijo(x, func, grad)
+
+        x_next = x + alpha * p_k
+        grad_next = func.gradient(x_next)
+
+        s_k = x_next - x
+        y_k = grad_next - grad
+
+        rho_k1 = (y_k.T @ s_k)
+
+        if abs(rho_k1) < 1e-9:
+            if rho_k1 == 0:
+                rho_k1 = 1e-9
+            else:
+                rho_k1 = np.sign(rho_k1) * 1e-9
+
+        rho_k = 1.0 / rho_k1
+        
+
+        c1 = (I - rho_k * s_k @ y_k.T)
+        c2 = (I - rho_k * y_k @ s_k.T) 
+        c3 = rho_k * s_k @ s_k.T
+
+        c = c1 @ c @ c2 + c3
+        
+        x = x_next
+        grad = grad_next
+
+        trajectory.append(x)
+
+        k += 1
+        print(f'k: {k}, x: {x}, f: {func(x)}')
+
+    return np.array(trajectory)
+
+
+def damped_newton_descent(x_0: np.ndarray,
+                          func: BiFunc,
+                          sc: StopCondition,
+                          learning_rate_func: LearningRateFunc = constant_h(1),
+                          ) -> np.ndarray:
+    x = x_0.copy()
+    k = 0
+    trajectory = [x.copy()]
+
+    while True:
+        grad = func.gradient(x)
+
+        if (grad.T @ grad) < 1e-9:
+            EPS = 1e-7
+
+            def random_eps():
+                return random.choice([-EPS, EPS])
+            grad += np.array([random_eps(), random_eps()])
+
+        prev = x.copy()
+
+        alpha = learning_rate_func(k)
+        p = np.linalg.inv(func.hessian(x)) @ grad
+        x = x - alpha * p
+        trajectory.append(x.copy())
+
+        if sc(x, prev) or k > MAX_ITERATION_LIMIT:
+            break
+        if False:
+            print(f'k: {k}, x: {x}, f: {func(x)}')
+
+        k += 1
+
+    return np.array(trajectory)
+
+
+def newton_descent_with_1d_search(x_0: np.ndarray,
+                                  func: BiFunc,
+                                  sc: StopCondition,
+                                  step_selector: Callable[[int, np.ndarray, np.ndarray, BiFunc], float],
+                                  ) -> np.ndarray:
+
+    delta = 1.0
+    x = x_0.copy()
+    k = 0
+    trajectory = [x.copy()]
+
+    def dogleg() -> np.ndarray:
+        p = -(np.linalg.inv(B) @ grad)
+
+        if np.linalg.norm(p) > delta:
+            print("c outside trust region")
+
+            h = step_selector(k, x, grad, func)
+            p_b = p
+            p_u = -h * grad
+
+            norm_pu = np.linalg.norm(p_u)
+
+            if norm_pu >= delta:
+                print("norm_pu >= delta")
+                p = delta * p_u / norm_pu
+            else:
+                pb_pu = np.dot(p_b - p_u, p_b - p_u)
+                dot_pU_pB_pU = np.dot(p_u, p_b - p_u)
+                fact = dot_pU_pB_pU**2 - pb_pu * (np.dot(p_u, p_u) - delta**2)
+                tau = (-dot_pU_pB_pU + math.sqrt(fact)) / pb_pu
+                print("x += ", p_u + tau * (p_b - p_u))
+                p = p_u + tau * (p_b - p_u)
+        return p
+
+    while True:
+        grad = func.gradient(x)
+
+        if (grad.T @ grad) < 1e-9:
+            EPS = 1e-7
+
+            def random_eps():
+                return random.choice([-EPS, EPS])
+            grad += np.array([random_eps(), random_eps()])
+
+        prev = x.copy()
+
+        B = func.hessian(x)
+
+        p = 0
+        DELTA_ITERATIONS_LIMIT = 3
+        for _ in range(DELTA_ITERATIONS_LIMIT):
+            p = dogleg()
+
+            df = func(x) - func(x + p)
+            dm = -(np.dot(grad, p) + 0.5 * np.dot(p, np.dot(B, p)))
+
+            if abs(dm) < 1e-10:
+                dm = 1e-10
+
+            rho = df / dm
+            print(f'rho: {rho}')
+
+            if rho < 0.05:
+                delta = 1/2 * delta
+                continue
+
+            if rho >= 3/4:
+                delta *= 2
+            elif rho > 1/4:
+                delta = delta
+            elif 0.05 < rho < 1/4:
+                delta = 1/2 * delta
+
+            break
+
+        x = x + p
+
+        trajectory.append(x.copy())
+
+        if sc(x, prev) or k > MAX_ITERATION_LIMIT:
+            break
+        if True:
+            print(f'k: {k}, x: {x}, f: {func(x)}')
+
+        k += 1
+
+    return np.array(trajectory)
+
 
 def find_b(func: Func) -> float:
     MAX_X = 10000
@@ -279,9 +451,10 @@ def armijo(x_k: np.ndarray, func: BiFunc, grad: np.ndarray) -> float:
         alpha = q*alpha
     return float(alpha)
 
+
 def wolfe(x_k: np.ndarray, func: BiFunc, grad: np.ndarray) -> float:
     derivative: float = -float(grad @ grad.T)
-    
+
     # "c1 is usually chosen to be quite small while c2 is much larger"
     c1 = random.random()*0.05 + 0.1
     c2 = random.random()*0.05 + 0.9
@@ -304,4 +477,3 @@ def wolfe(x_k: np.ndarray, func: BiFunc, grad: np.ndarray) -> float:
         break
 
     return float(alpha)
-
