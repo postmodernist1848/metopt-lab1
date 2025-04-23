@@ -1,4 +1,4 @@
-from main import *
+from algorithms import *
 
 q1 = Quadratic(
     np.array([[1, 0], [0, 1]]),

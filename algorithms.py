@@ -12,10 +12,23 @@ type LearningRateFunc = Callable[[int], float]
 type StopCondition = Callable[[np.ndarray, np.ndarray], bool]
 type Func = Callable[[float], float]
 
+
 class BiFunc(Protocol):
     def __call__(self, x: np.ndarray) -> float: ...
     def gradient(self, x: np.ndarray) -> np.ndarray: ...
     def hessian(self, x: np.ndarray) -> np.ndarray: ...
+
+
+def relative_x_condition() -> StopCondition:
+    eps = 1e-9
+    # ‖𝑥_{𝑘+1} − 𝑥_𝑘‖ < 𝜀(‖𝑥_{𝑘+1}‖ + 1)
+    return lambda x, prev: bool(np.linalg.norm(x - prev) < eps * (np.linalg.norm(x) + 1))
+
+
+def relative_f_condition(func: BiFunc, x_0: np.ndarray) -> StopCondition:
+    eps = 1e-9
+    # ‖∇𝑓(𝑥_𝑘)‖^2 < 𝜀‖∇𝑓(𝑥_0)‖^2
+    return lambda x, prev: bool(np.linalg.norm(func.gradient(x) ** 2) < eps * np.linalg.norm(func.gradient(x_0)) ** 2)
 
 
 class Quadratic:
@@ -258,14 +271,13 @@ def bfgs(x_0: np.ndarray,
                 rho_k1 = np.sign(rho_k1) * 1e-9
 
         rho_k = 1.0 / rho_k1
-        
 
         c1 = (I - rho_k * s_k @ y_k.T)
-        c2 = (I - rho_k * y_k @ s_k.T) 
+        c2 = (I - rho_k * y_k @ s_k.T)
         c3 = rho_k * s_k @ s_k.T
 
         c = c1 @ c @ c2 + c3
-        
+
         x = x_next
         grad = grad_next
 
@@ -317,6 +329,9 @@ def newton_descent_with_1d_search(x_0: np.ndarray,
                                   func: BiFunc,
                                   sc: StopCondition,
                                   step_selector: Callable[[int, np.ndarray, np.ndarray, BiFunc], float],
+            very_low = 0.05,
+            low = 0.25,
+            high = 3/4
                                   ) -> np.ndarray:
 
     delta = 1.0
@@ -328,8 +343,6 @@ def newton_descent_with_1d_search(x_0: np.ndarray,
         p = -(np.linalg.inv(B) @ grad)
 
         if np.linalg.norm(p) > delta:
-            print("c outside trust region")
-
             h = step_selector(k, x, grad, func)
             p_b = p
             p_u = -h * grad
@@ -337,14 +350,12 @@ def newton_descent_with_1d_search(x_0: np.ndarray,
             norm_pu = np.linalg.norm(p_u)
 
             if norm_pu >= delta:
-                print("norm_pu >= delta")
                 p = delta * p_u / norm_pu
             else:
                 pb_pu = np.dot(p_b - p_u, p_b - p_u)
                 dot_pU_pB_pU = np.dot(p_u, p_b - p_u)
                 fact = dot_pU_pB_pU**2 - pb_pu * (np.dot(p_u, p_u) - delta**2)
                 tau = (-dot_pU_pB_pU + math.sqrt(fact)) / pb_pu
-                print("x += ", p_u + tau * (p_b - p_u))
                 p = p_u + tau * (p_b - p_u)
         return p
 
@@ -363,7 +374,7 @@ def newton_descent_with_1d_search(x_0: np.ndarray,
         B = func.hessian(x)
 
         p = 0
-        DELTA_ITERATIONS_LIMIT = 3
+        DELTA_ITERATIONS_LIMIT = 15
         for _ in range(DELTA_ITERATIONS_LIMIT):
             p = dogleg()
 
@@ -374,17 +385,16 @@ def newton_descent_with_1d_search(x_0: np.ndarray,
                 dm = 1e-10
 
             rho = df / dm
-            print(f'rho: {rho}')
 
-            if rho < 0.05:
+            if rho < very_low:
                 delta = 1/2 * delta
                 continue
 
-            if rho >= 3/4:
+            if rho >= high:
                 delta *= 2
-            elif rho > 1/4:
+            elif rho >= low:
                 delta = delta
-            elif 0.05 < rho < 1/4:
+            elif very_low <= rho < low:
                 delta = 1/2 * delta
 
             break
@@ -395,7 +405,8 @@ def newton_descent_with_1d_search(x_0: np.ndarray,
 
         if sc(x, prev) or k > MAX_ITERATION_LIMIT:
             break
-        if True:
+        NEWTON_DESCENT_WITH_1D_SEARCH_LOGGING = False
+        if NEWTON_DESCENT_WITH_1D_SEARCH_LOGGING:
             print(f'k: {k}, x: {x}, f: {func(x)}')
 
         k += 1
@@ -478,12 +489,3 @@ def wolfe(x_k: np.ndarray, func: BiFunc, grad: np.ndarray) -> float:
         break
 
     return float(alpha)
-
-
-if __name__ == "__main__":
-
-    study = optuna.create_study()
-    optuna.logging.set_verbosity(optuna.logging.WARN)
-    study.optimize(objective, n_trials=1000, n_jobs=-1, show_progress_bar=True)
-
-    print(study.best_params)
