@@ -292,7 +292,7 @@ def bfgs(x_0: np.ndarray,
 def damped_newton_descent(x_0: np.ndarray,
                           func: BiFunc,
                           sc: StopCondition,
-                          learning_rate_func: LearningRateFunc = constant_h(1),
+                          learning_rate_func: LearningRateFunc = constant_h(1)
                           ) -> np.ndarray:
     x = x_0.copy()
     k = 0
