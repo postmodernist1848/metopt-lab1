@@ -4,6 +4,7 @@ import random
 import math
 from scipy.optimize import line_search
 from scipy.optimize import fmin_bfgs
+import optuna
 
 MAX_ITERATION_LIMIT = 10000
 
@@ -477,3 +478,12 @@ def wolfe(x_k: np.ndarray, func: BiFunc, grad: np.ndarray) -> float:
         break
 
     return float(alpha)
+
+
+if __name__ == "__main__":
+
+    study = optuna.create_study()
+    optuna.logging.set_verbosity(optuna.logging.WARN)
+    study.optimize(objective, n_trials=1000, n_jobs=-1, show_progress_bar=True)
+
+    print(study.best_params)
