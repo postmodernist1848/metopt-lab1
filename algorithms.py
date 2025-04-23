@@ -489,3 +489,6 @@ def wolfe(x_k: np.ndarray, func: BiFunc, grad: np.ndarray) -> float:
         break
 
     return float(alpha)
+
+def armijo_step_selector(k, x, grad, func):
+    return armijo(x, func, grad)
