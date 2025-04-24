@@ -4,7 +4,7 @@ from funcs import q1, q2, f4
 import algorithms
 import optuna
 import numpy as np
-
+import pathlib
 
 class OptunaTime:
     SEC = 1
@@ -15,12 +15,12 @@ class OptunaTime:
 def clean(objectives):
     for objective in objectives:
         try:
-            os.remove(f'{objective.__name__}.db')
+            os.remove(f'studies/{objective.__name__}.db')
         except OSError:
             pass
 
         try:
-            os.remove(f'{objective.__name__}.db-journal')
+            os.remove(f'studies/{objective.__name__}.db-journal')
         except OSError:
             pass
 
@@ -29,7 +29,9 @@ def optimize(objectives):
     for objective in objectives:
         study_name = objective.__name__
 
-        storage_name = f"sqlite:///{study_name}.db"
+        pathlib.Path("studies/").mkdir(parents=True, exist_ok=True)
+        storage_name = f"sqlite:///studies/{study_name}.db"
+
         study = optuna.create_study(study_name=study_name, storage=storage_name, directions=[
                                     'minimize', 'minimize'], load_if_exists=True)
 
