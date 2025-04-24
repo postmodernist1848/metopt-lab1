@@ -148,7 +148,7 @@ def bfgs(x_0: np.ndarray,
 
     while np.linalg.norm(grad) > eps and k < MAX_ITERATION_LIMIT:
         p_k = -c @ grad
-        alpha = armijo(x, func, grad)
+        alpha = wolfe(x, func, grad)
 
         x_next = x + alpha * p_k
         grad_next = func.gradient(x_next)
@@ -166,9 +166,9 @@ def bfgs(x_0: np.ndarray,
 
         rho_k = 1.0 / rho_k1
 
-        c1 = (I - rho_k * s_k @ y_k.T)
-        c2 = (I - rho_k * y_k @ s_k.T)
-        c3 = rho_k * s_k @ s_k.T
+        c1 = (I - rho_k * s_k[:, np.newaxis] @ y_k[np.newaxis, :])
+        c2 = (I - rho_k * y_k[:, np.newaxis] @ s_k[np.newaxis, :])
+        c3 = rho_k * s_k[:, np.newaxis] @ s_k[np.newaxis, :]
 
         c = c1 @ c @ c2 + c3
 
