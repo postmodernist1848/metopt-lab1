@@ -29,9 +29,9 @@ def main():
             lambda x_0, func: steepest_gradient_descent_dichotomy(x_0, func, dichotomy_eps, stop_condition)),
         ("Scipy Wolfe Gradient Descent",
             lambda x_0, func: steepest_gradient_descent_scipy_wolfe(x_0, func, stop_condition)),
-        ("Newton Descent with 1D Search",
+        ("Damped Newton Descent",
             lambda x_0, func: newton_descent_with_1d_search(x_0, func, stop_condition, armijo_step_selector)),
-        ("Dog Leg const(0.1)",
+        ("Dog Leg Armijo",
             lambda x_0, func: damped_newton_descent(x_0, func, stop_condition, lr_constant(0.1)))
     ]
 
