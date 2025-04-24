@@ -2,7 +2,7 @@ from typing import Callable, Protocol
 import numpy as np
 import random
 import math
-from scipy.optimize import line_search
+from scipy.optimize import line_search, fmin_cg, fmin_bfgs
 
 '''
 
@@ -178,7 +178,7 @@ def bfgs(x_0: np.ndarray,
         trajectory.append(x)
 
         k += 1
-        print(f'k: {k}, x: {x}, f: {func(x)}')
+        # print(f'k: {k}, x: {x}, f: {func(x)}')
 
     return np.array(trajectory)
 
@@ -383,3 +383,25 @@ def wolfe(x_k: np.ndarray, func: BiFunc, grad: np.ndarray) -> float:
         break
 
     return float(alpha)
+
+def scipy_cg(x_0: np.ndarray, func: BiFunc) -> np.ndarray:
+    trajectory = [x_0]
+    fmin_cg(
+        func,
+        x_0,
+        func.gradient,
+        callback=lambda x: trajectory.append(x),
+        disp=False
+    )
+    return np.array(trajectory)
+
+def scipy_bfgs(x_0: np.ndarray, func: BiFunc) -> np.ndarray:
+    trajectory = [x_0]
+    fmin_bfgs(
+        func,
+        x_0,
+        func.gradient,
+        callback=lambda x: trajectory.append(x),
+        disp=False
+    )
+    return np.array(trajectory)
