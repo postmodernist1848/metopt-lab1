@@ -14,7 +14,7 @@ def main():
     ]
 
     stop_condition = relative_x_condition()
-    dichotomy_eps = 1e-9
+    eps = 1e-9
 
     algorithms = [
         ("Learning rate scheduling const(0.1)",
@@ -26,13 +26,20 @@ def main():
         ("Armijo Gradient Descent",
             lambda x_0, func: steepest_gradient_descent_armijo(x_0, func, stop_condition)),
         ("Dichotomy Gradient Descent",
-            lambda x_0, func: steepest_gradient_descent_dichotomy(x_0, func, dichotomy_eps, stop_condition)),
+            lambda x_0, func: steepest_gradient_descent_dichotomy(x_0, func, eps, stop_condition)),
         ("Scipy Wolfe Gradient Descent",
             lambda x_0, func: steepest_gradient_descent_scipy_wolfe(x_0, func, stop_condition)),
         ("Damped Newton Descent",
             lambda x_0, func: damped_newton_descent(x_0, func, stop_condition, lr_constant(0.1))),
         ("Dog Leg Armijo",
             lambda x_0, func: newton_descent_with_1d_search(x_0, func, stop_condition, armijo_step_selector)),
+        ("BFGS",
+            lambda x_0, func: bfgs(x_0, func, eps)),
+        ("Scipy Newton-CG",
+            lambda x_0, func: scipy_cg(x_0, func)), 
+        ("Scipy BFGS",
+            lambda x_0, func: scipy_bfgs(x_0, func))   
+
     ]
 
     for algorithm_name, applier in algorithms:
