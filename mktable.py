@@ -2,6 +2,7 @@ from lib.algorithms import *
 from lib.funcs import q1, q2, f4, fsinsin
 from lib.stats import BiFuncStatsDecorator, print_stats
 
+
 def main():
     xs = [np.array(x) for x in ([-1, -1], [1.0, 4.0], [1.0, 1.0])]
 
@@ -13,31 +14,36 @@ def main():
     ]
 
     stop_condition = relative_x_condition()
+    dichotomy_eps = 1e-9
 
     algorithms = [
-        ("Learning rate scheduling const(0.1)", lambda args: learning_rate_scheduling(args['x_0'], args['func'], lr_constant(0.1), stop_condition)),
-        ("Learning rate scheduling exp(0.5)", lambda args: learning_rate_scheduling(args['x_0'], args['func'], lr_exponential_decay(0.5), stop_condition)),
-        ("Learning rate scheduling exp(0.3)", lambda args: learning_rate_scheduling(args['x_0'], args['func'], lr_exponential_decay(0.3), stop_condition)),
-        ("Armijo Gradient Descent", lambda args: steepest_gradient_descent_armijo(args['x_0'], args['func'], stop_condition)),
-        ("Dichotomy Gradient Descent", lambda args: steepest_gradient_descent_dichotomy(args['x_0'], args['func'], args['dichotomy_eps'], stop_condition)),
-        ("Scipy Wolfe Gradient Descent", lambda args: steepest_gradient_descent_scipy_wolfe(args['x_0'], args['func'], stop_condition)),
-        ("Newton Descent with 1D Search", lambda args: newton_descent_with_1d_search(args['x_0'], args['func'], stop_condition, armijo_step_selector)),
-        ("Dog Leg const(0.1)", lambda args: damped_newton_descent(args['x_0'], args['func'], stop_condition, lr_constant(0.1)))
+        ("Learning rate scheduling const(0.1)",
+            lambda x_0, func: learning_rate_scheduling(x_0, func, lr_constant(0.1), stop_condition)),
+        ("Learning rate scheduling exp(0.5)",
+            lambda x_0, func: learning_rate_scheduling(x_0, func, lr_exponential_decay(0.5), stop_condition)),
+        ("Learning rate scheduling exp(0.3)",
+            lambda x_0, func: learning_rate_scheduling(x_0, func, lr_exponential_decay(0.3), stop_condition)),
+        ("Armijo Gradient Descent",
+            lambda x_0, func: steepest_gradient_descent_armijo(x_0, func, stop_condition)),
+        ("Dichotomy Gradient Descent",
+            lambda x_0, func: steepest_gradient_descent_dichotomy(x_0, func, dichotomy_eps, stop_condition)),
+        ("Scipy Wolfe Gradient Descent",
+            lambda x_0, func: steepest_gradient_descent_scipy_wolfe(x_0, func, stop_condition)),
+        ("Newton Descent with 1D Search",
+            lambda x_0, func: newton_descent_with_1d_search(x_0, func, stop_condition, armijo_step_selector)),
+        ("Dog Leg const(0.1)",
+            lambda x_0, func: damped_newton_descent(x_0, func, stop_condition, lr_constant(0.1)))
     ]
 
-    eps = 1e-9
     for algorithm_name, applier in algorithms:
         for func_name, func in funcs:
+            assert func.min() is not None, f"minimum value for {func_name} is not found"
             for x_0 in xs:
-                args = {
-                    "x_0": x_0,
-                    "func": func,
-                    "stop_condition": relative_x_condition(),
-                    "dichotomy_eps": eps
-                }
+                trajectory = applier(x_0, func)
 
-                trajectory = applier(args)
-                print_stats(func, trajectory,  f'{func_name} | {algorithm_name} | x0={x_0}', plot=False)
-        
+                print_stats(
+                    func, trajectory,  f'{func_name} | {algorithm_name} | x0={x_0}', plot=False)
+
+
 if __name__ == "__main__":
     main()

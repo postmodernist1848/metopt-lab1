@@ -162,10 +162,10 @@ def opp3(x, y):
 f1 = BiFuncCallableWrapper(mf1)
 f2 = BiFuncCallableWrapper(mf2)
 f3 = BiFuncCallableWrapper(mf3)
-f4 = BiFuncCallableWrapper(mf4)
-f5 = BiFuncCallableWrapper(mf5)
-f6 = BiFuncCallableWrapper(mf6)
-fopp = BiFuncCallableWrapper(opp)
-fopp2 = BiFuncCallableWrapper(opp2) # 1
-fopp3 = BiFuncCallableWrapper(opp3)
-fsinsin = BiFuncCallableWrapper(lambda x, y: math.sin(x) + math.sin(y)) # 2
+f4 = BiFuncCallableWrapper(mf4, -0.514753641275705599276576050856482912233727798097409)
+f5 = BiFuncCallableWrapper(mf5, -0.5)
+f6 = BiFuncCallableWrapper(mf6, 0)
+fopp = BiFuncCallableWrapper(opp, -657.573)
+fopp2 = BiFuncCallableWrapper(opp2, 0) # 1
+fopp3 = BiFuncCallableWrapper(opp3, -0.119789)
+fsinsin = BiFuncCallableWrapper(lambda x, y: math.sin(x) + math.sin(y), -2) # 2
