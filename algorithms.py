@@ -3,20 +3,39 @@ import numpy as np
 import random
 import math
 from scipy.optimize import line_search
-from scipy.optimize import fmin_bfgs
-import optuna
 
 MAX_ITERATION_LIMIT = 10000
 
 type LearningRateFunc = Callable[[int], float]
+
+def constant_h(c: float) -> LearningRateFunc:
+    return lambda k: c
+
+def geometric_h() -> LearningRateFunc:
+    h0 = 1
+    return lambda k: h0 / 2**k
+
+
+def exponential_decay(λ: float) -> LearningRateFunc:
+    assert λ > 0
+    h0 = 1
+    return lambda k: h0 * math.exp(-λ * k)
+
+
+def polynomial_decay(α: float, β: float) -> LearningRateFunc:
+    assert α > 0
+    assert β > 0
+    return lambda k: 1/math.sqrt(k + 1) * (β * k + 1) ** -α
+
+
 type StopCondition = Callable[[np.ndarray, np.ndarray], bool]
 type Func = Callable[[float], float]
-
 
 class BiFunc(Protocol):
     def __call__(self, x: np.ndarray) -> float: ...
     def gradient(self, x: np.ndarray) -> np.ndarray: ...
     def hessian(self, x: np.ndarray) -> np.ndarray: ...
+    def min(self) -> float | None: ...
 
 
 def relative_x_condition() -> StopCondition:
@@ -51,13 +70,23 @@ class Quadratic:
     def hessian(self, x: np.ndarray) -> np.ndarray:
         return 2 * self.A
 
+    def min(self) -> float | None:
+        # x = -1/2 * A^(-1) * B
+        try:
+            x = -0.5 * np.linalg.inv(self.A) @ self.B
+            return self(x)
+        except np.linalg.LinAlgError:
+            return None
+
 
 class BiFuncCallableWrapper:
     f: Callable[[float, float], float]
+    min_value: float | None = None
     h: float = 0.001
 
-    def __init__(self, f: Callable[[float, float], float]):
+    def __init__(self, f: Callable[[float, float], float], min_value: float | None = None):
         self.f = f
+        self.min_value = min_value
 
     def __call__(self, x: np.ndarray) -> float:
         return self.f(x[0], x[1])
@@ -93,6 +122,9 @@ class BiFuncCallableWrapper:
         ])
 
         return hessian
+    
+    def min(self) -> float | None:
+        return self.min_value
 
 
 class NoisyWrapper:
@@ -112,31 +144,8 @@ class NoisyWrapper:
     def hessian(self, x: np.ndarray) -> np.ndarray:
         return self.f.hessian(x)
 
-
-class BiFuncStatsDecorator:
-    f: BiFunc
-    call_count: int = 0
-    gradient_count: int = 0
-    hessian_count: int = 0
-
-    def __init__(self, f: BiFunc):
-        self.f = f
-
-    def __call__(self, x: np.ndarray):
-        self.call_count += 1
-        return self.f.__call__(x)
-
-    def gradient(self, x: np.ndarray) -> np.ndarray:
-        self.gradient_count += 1
-        return self.f.gradient(x)
-
-    def hessian(self, x: np.ndarray) -> np.ndarray:
-        self.hessian_count += 1
-        return self.f.hessian(x)
-
-    def reset(self):
-        self.hessian_count = self.gradient_count = self.call_count = 0
-
+    def min(self) -> float | None:
+        return self.f.min()
 
 def gradient_descent(x_0: np.ndarray,
                      func: BiFunc,
@@ -164,33 +173,15 @@ def gradient_descent(x_0: np.ndarray,
 
         if sc(x, prev) or k > MAX_ITERATION_LIMIT:
             break
-        if False:
-            print(f'k: {k}, x: {x}, f: {func(x)}')
+        # print(f'k: {k}, x: {x}, f: {func(x)}')
 
         k += 1
 
     return np.array(trajectory)
 
 
-def constant_h(c: float) -> LearningRateFunc:
-    return lambda k: c
-
-
-def geometric_h() -> LearningRateFunc:
-    h0 = 1
-    return lambda k: h0 / 2**k
-
-
-def exponential_decay(λ: float) -> LearningRateFunc:
-    assert λ > 0
-    h0 = 1
-    return lambda k: h0 * math.exp(-λ * k)
-
-
-def polynomial_decay(α: float, β: float) -> LearningRateFunc:
-    assert α > 0
-    assert β > 0
-    return lambda k: 1/math.sqrt(k + 1) * (β * k + 1) ** -α
+def armijo_step_selector(k, x, grad, func):
+    return armijo(x, func, grad)
 
 
 def learning_rate_scheduling(x_0: np.ndarray,
@@ -216,10 +207,7 @@ def steepest_gradient_descent_dichotomy(x_0: np.ndarray,
 def steepest_gradient_descent_armijo(x_0: np.ndarray,
                                      func: BiFunc,
                                      sc: StopCondition) -> np.ndarray:
-    def step_selector(k, x, grad, func):
-        return armijo(x, func, grad)
-
-    return gradient_descent(x_0, func, step_selector, sc)
+    return gradient_descent(x_0, func, armijo_step_selector, sc)
 
 
 def steepest_gradient_descent_wolfe(x_0: np.ndarray,
@@ -489,6 +477,3 @@ def wolfe(x_k: np.ndarray, func: BiFunc, grad: np.ndarray) -> float:
         break
 
     return float(alpha)
-
-def armijo_step_selector(k, x, grad, func):
-    return armijo(x, func, grad)
