@@ -4,23 +4,26 @@ import random
 import math
 from scipy.optimize import line_search
 
-MAX_ITERATION_LIMIT = 10000
+'''
 
+    Learning rate functions
+
+'''
 type LearningRateFunc = Callable[[int], float]
 
-def constant(c: float) -> LearningRateFunc:
+def lr_constant(c: float) -> LearningRateFunc:
     return lambda k: c
 
-def geometric() -> LearningRateFunc:
+def lr_geometric() -> LearningRateFunc:
     h0 = 1
     return lambda k: h0 / 2**k
 
-def exponential_decay(λ: float) -> LearningRateFunc:
+def lr_exponential_decay(λ: float) -> LearningRateFunc:
     assert λ > 0
     h0 = 1
     return lambda k: h0 * math.exp(-λ * k)
 
-def polynomial_decay(α: float, β: float) -> LearningRateFunc:
+def lr_polynomial_decay(α: float, β: float) -> LearningRateFunc:
     assert α > 0
     assert β > 0
     return lambda k: 1/math.sqrt(k + 1) * (β * k + 1) ** -α
@@ -47,6 +50,8 @@ def relative_f_condition(func: BiFunc, x_0: np.ndarray) -> StopCondition:
     # ‖∇𝑓(𝑥_𝑘)‖^2 < 𝜀‖∇𝑓(𝑥_0)‖^2
     return lambda x, prev: bool(np.linalg.norm(func.gradient(x) ** 2) < eps * np.linalg.norm(func.gradient(x_0)) ** 2)
 
+
+MAX_ITERATION_LIMIT = 10000
 
 def gradient_descent(x_0: np.ndarray,
                      func: BiFunc,
@@ -181,7 +186,7 @@ def bfgs(x_0: np.ndarray,
 def damped_newton_descent(x_0: np.ndarray,
                           func: BiFunc,
                           sc: StopCondition,
-                          learning_rate_func: LearningRateFunc = constant(0.1)
+                          learning_rate_func: LearningRateFunc = lr_constant(0.1)
                           ) -> np.ndarray:
     x = x_0.copy()
     k = 0

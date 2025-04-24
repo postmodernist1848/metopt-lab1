@@ -62,7 +62,7 @@ def main():
             for x_0 in x_0s:
                 sc = algorithms.relative_x_condition()
                 trajectory = algorithms.damped_newton_descent(
-                    x_0, func, sc, algorithms.constant(α))
+                    x_0, func, sc, algorithms.lr_constant(α))
                 x = trajectory[-1]
                 values.append(func(x))
                 iterations.append(len(trajectory))
@@ -98,7 +98,7 @@ def main():
         for func in funcs:
             for x_0 in x_0s:
                 sc = algorithms.relative_x_condition()
-                trajectory = algorithms.learning_rate_scheduling(x_0, func, algorithms.exponential_decay(λ), sc)
+                trajectory = algorithms.learning_rate_scheduling(x_0, func, algorithms.lr_exponential_decay(λ), sc)
                 x = trajectory[-1]
                 values.append(func(x))
                 iterations.append(len(trajectory))
