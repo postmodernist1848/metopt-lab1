@@ -62,7 +62,7 @@ def main():
             for x_0 in x_0s:
                 sc = algorithms.relative_x_condition()
                 trajectory = algorithms.damped_newton_descent(
-                    x_0, func, sc, algorithms.constant_h(α))
+                    x_0, func, sc, algorithms.constant(α))
                 x = trajectory[-1]
                 values.append(func(x))
                 iterations.append(len(trajectory))

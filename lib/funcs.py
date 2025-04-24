@@ -1,5 +1,103 @@
 from algorithms import *
 
+class Quadratic:
+    A: np.ndarray
+    B: np.ndarray
+    C: float
+
+    def __init__(self, a: np.ndarray, b: np.ndarray, c: float):
+        self.A = a
+        self.B = b
+        self.C = c
+
+    def __call__(self, x: np.ndarray) -> float:
+        # x^T A x + x^T B x + C
+        return float(x.T @ self.A @ x + self.B @ x + self.C)
+
+    def gradient(self, x: np.ndarray) -> np.ndarray:
+        return 2 * self.A @ x + self.B
+
+    def hessian(self, x: np.ndarray) -> np.ndarray:
+        return 2 * self.A
+
+    def min(self) -> float | None:
+        # x = -1/2 * A^(-1) * B
+        try:
+            x = -0.5 * np.linalg.inv(self.A) @ self.B
+            return self(x)
+        except np.linalg.LinAlgError:
+            return None
+
+
+class BiFuncCallableWrapper:
+    f: Callable[[float, float], float]
+    min_value: float | None = None
+    h: float = 0.001
+
+    def __init__(self, f: Callable[[float, float], float], min_value: float | None = None):
+        self.f = f
+        self.min_value = min_value
+
+    def __call__(self, x: np.ndarray) -> float:
+        return self.f(x[0], x[1])
+
+    def gradient(self, x: np.ndarray) -> np.ndarray:
+        d1 = (self.f(x[0] + self.h, x[1]) -
+              self.f(x[0] - self.h, x[1])) / (2*self.h)
+        d2 = (self.f(x[0], x[1] + self.h) -
+              self.f(x[0], x[1] - self.h)) / (2*self.h)
+        g = np.array([d1, d2])
+        return g
+
+    def hessian(self, x: np.ndarray) -> np.ndarray:
+        x1, x2 = x
+
+        # Use a central difference formula for better accuracy
+        # For f_xx (second derivative with respect to x)
+        f_xx = (self.f(x1 + self.h, x2) - 2 * self.f(x1, x2) +
+                self.f(x1 - self.h, x2)) / (self.h * self.h)
+
+        # For f_yy (second derivative with respect to y)
+        f_yy = (self.f(x1, x2 + self.h) - 2 * self.f(x1, x2) +
+                self.f(x1, x2 - self.h)) / (self.h * self.h)
+
+        # For f_xy (mixed derivative)
+        # Use the cross partial difference formula
+        f_xy = (self.f(x1 + self.h, x2 + self.h) - self.f(x1 + self.h, x2 - self.h) -
+                self.f(x1 - self.h, x2 + self.h) + self.f(x1 - self.h, x2 - self.h)) / (4 * self.h * self.h)
+
+        hessian = np.array([
+            [f_xx, f_xy],
+            [f_xy, f_yy]
+        ])
+
+        return hessian
+    
+    def min(self) -> float | None:
+        return self.min_value
+
+
+class NoisyWrapper:
+    f: BiFunc
+    factor: float
+
+    def __init__(self, f: BiFunc, factor: float = 1.0):
+        self.f = f
+        self.factor = factor
+
+    def __call__(self, x: np.ndarray):
+        return self.f.__call__(x) + random.random() * self.factor
+
+    def gradient(self, x: np.ndarray) -> np.ndarray:
+        return self.f.gradient(x)
+
+    def hessian(self, x: np.ndarray) -> np.ndarray:
+        return self.f.hessian(x)
+
+    def min(self) -> float | None:
+        return self.f.min()
+
+
 q1 = Quadratic(
     np.array([[1, 0], [0, 1]]),
     np.array([1, 1]),

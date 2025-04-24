@@ -15,14 +15,14 @@ def main():
     stop_condition = relative_x_condition()
 
     algorithms = [
-        ("Learning rate scheduling const(0.1)", lambda args: learning_rate_scheduling(args['x_0'], args['func'], constant_h(0.1), stop_condition)),
+        ("Learning rate scheduling const(0.1)", lambda args: learning_rate_scheduling(args['x_0'], args['func'], constant(0.1), stop_condition)),
         ("Learning rate scheduling exp(0.5)", lambda args: learning_rate_scheduling(args['x_0'], args['func'], exponential_decay(0.5), stop_condition)),
         ("Learning rate scheduling exp(0.3)", lambda args: learning_rate_scheduling(args['x_0'], args['func'], exponential_decay(0.3), stop_condition)),
         ("Armijo Gradient Descent", lambda args: steepest_gradient_descent_armijo(args['x_0'], args['func'], stop_condition)),
         ("Dichotomy Gradient Descent", lambda args: steepest_gradient_descent_dichotomy(args['x_0'], args['func'], args['dichotomy_eps'], stop_condition)),
         ("Scipy Wolfe Gradient Descent", lambda args: steepest_gradient_descent_scipy_wolfe(args['x_0'], args['func'], stop_condition)),
         ("Newton Descent with 1D Search", lambda args: newton_descent_with_1d_search(args['x_0'], args['func'], stop_condition, armijo_step_selector)),
-        ("Dog Leg const(0.1)", lambda args: damped_newton_descent(args['x_0'], args['func'], stop_condition, constant_h(0.1)))
+        ("Dog Leg const(0.1)", lambda args: damped_newton_descent(args['x_0'], args['func'], stop_condition, constant(0.1)))
     ]
 
     eps = 1e-9
