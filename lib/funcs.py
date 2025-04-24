@@ -1,4 +1,4 @@
-from algorithms import *
+from lib.algorithms import *
 
 class Quadratic:
     A: np.ndarray

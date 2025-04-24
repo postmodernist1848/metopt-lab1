@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from algorithms import BiFunc
+from lib.algorithms import BiFunc
 
 class BiFuncStatsDecorator:
     f: BiFunc
