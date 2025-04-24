@@ -53,7 +53,7 @@ def main():
     funcs = [q1, q2, f4]
 
     def damped_newton_constant_learning_rate(trial: optuna.Trial):
-        α = trial.suggest_float('λ', 0, 1)
+        α = trial.suggest_float('α', 0, 1)
 
         values = []
         iterations = []
