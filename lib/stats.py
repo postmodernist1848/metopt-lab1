@@ -30,11 +30,10 @@ class BiFuncStatsDecorator:
         return self.f.min()
 
 PLOT_SIZE=3
-
 def plot_trajectory(func: BiFunc, trajectory: np.ndarray, title=None, plot_size=PLOT_SIZE):
     # Create a meshgrid for the 3D plot
-    x = np.linspace(-PLOT_SIZE, PLOT_SIZE, 100)
-    y = np.linspace(-PLOT_SIZE, PLOT_SIZE, 100)
+    x = np.linspace(-plot_size, plot_size, 100)
+    y = np.linspace(-plot_size, plot_size, 100)
     X, Y = np.meshgrid(x, y)
     Z = np.zeros_like(X)
 

@@ -1,6 +1,6 @@
-from algorithms import *
-from funcs import q1, q2, f4, fsinsin
-from stats import BiFuncStatsDecorator, print_stats
+from lib.algorithms import *
+from lib.funcs import q1, q2, f4, fsinsin
+from lib.stats import BiFuncStatsDecorator, print_stats
 
 def main():
     xs = [np.array(x) for x in ([-1, -1], [1.0, 4.0], [1.0, 1.0])]

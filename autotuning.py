@@ -1,7 +1,7 @@
 import os
 import sys
-from funcs import q1, q2, f4
-import algorithms
+from lib.funcs import q1, q2, f4
+import lib.algorithms as algorithms
 import optuna
 import numpy as np
 import pathlib
