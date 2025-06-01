@@ -53,10 +53,10 @@ def relative_f_condition(func: BiFunc, x_0: np.ndarray) -> StopCondition:
 
 MAX_ITERATION_LIMIT = 10000
 
-def gradient_descent(x_0: np.ndarray,
-                     func: BiFunc,
-                     step_selector: Callable[[int, np.ndarray, np.ndarray, BiFunc], float],
-                     sc: StopCondition) -> np.ndarray:
+def _iterative_descent(x_0: np.ndarray,
+                      func: BiFunc,
+                      sc: StopCondition,
+                      next_point_selector: Callable[[np.ndarray, np.ndarray, BiFunc, int], np.ndarray]) -> np.ndarray:
     x = x_0.copy()
     k = 0
     trajectory = [x.copy()]
@@ -66,24 +66,30 @@ def gradient_descent(x_0: np.ndarray,
 
         if (grad.T @ grad) < 1e-9:
             EPS = 1e-7
-
             def random_eps():
                 return random.choice([-EPS, EPS])
             grad += np.array([random_eps(), random_eps()])
 
         prev = x.copy()
-
-        h = step_selector(k, x, grad, func)
-        x = x - h * grad
+        x = next_point_selector(x, grad, func, k)
         trajectory.append(x.copy())
 
         if sc(x, prev) or k > MAX_ITERATION_LIMIT:
             break
-        # print(f'k: {k}, x: {x}, f: {func(x)}')
 
         k += 1
 
     return np.array(trajectory)
+
+def gradient_descent(x_0: np.ndarray,
+                     func: BiFunc,
+                     step_selector: Callable[[int, np.ndarray, np.ndarray, BiFunc], float],
+                     sc: StopCondition) -> np.ndarray:
+    def next_point(x, grad, func, k):
+        h = step_selector(k, x, grad, func)
+        return x - h * grad
+    
+    return _iterative_descent(x_0, func, sc, next_point)
 
 
 def armijo_step_selector(k, x, grad, func):
@@ -188,89 +194,51 @@ def damped_newton_descent(x_0: np.ndarray,
                           sc: StopCondition,
                           learning_rate_func: LearningRateFunc = lr_constant(0.1)
                           ) -> np.ndarray:
-    x = x_0.copy()
-    k = 0
-    trajectory = [x.copy()]
-
-    while True:
-        grad = func.gradient(x)
-
-        if (grad.T @ grad) < 1e-9:
-            EPS = 1e-7
-
-            def random_eps():
-                return random.choice([-EPS, EPS])
-            grad += np.array([random_eps(), random_eps()])
-
-        prev = x.copy()
-
+    def next_point(x, grad, func, k):ы
         alpha = learning_rate_func(k)
         p = np.linalg.inv(func.hessian(x)) @ grad
-        x = x - alpha * p
-        trajectory.append(x.copy())
+        return x - alpha * p
+    
+    return _iterative_descent(x_0, func, sc, next_point)
 
-        if sc(x, prev) or k > MAX_ITERATION_LIMIT:
-            break
-        if False:
-            print(f'k: {k}, x: {x}, f: {func(x)}')
 
-        k += 1
+def _compute_dogleg_step(x: np.ndarray, grad: np.ndarray, B: np.ndarray, delta: float, step_selector: Callable[[int, np.ndarray, np.ndarray, BiFunc], float], k: int, func: BiFunc) -> tuple[np.ndarray, float]:
+    p = -(np.linalg.inv(B) @ grad)
 
-    return np.array(trajectory)
+    if np.linalg.norm(p) > delta:
+        h = step_selector(k, x, grad, func)
+        p_b = p
+        p_u = -h * grad
 
+        norm_pu = np.linalg.norm(p_u)
+
+        if norm_pu >= delta:
+            p = delta * p_u / norm_pu
+        else:
+            pb_pu = np.dot(p_b - p_u, p_b - p_u)
+            dot_pU_pB_pU = np.dot(p_u, p_b - p_u)
+            fact = dot_pU_pB_pU**2 - pb_pu * (np.dot(p_u, p_u) - delta**2)
+            tau = (-dot_pU_pB_pU + math.sqrt(fact)) / pb_pu
+            p = p_u + tau * (p_b - p_u)
+    return p
 
 def newton_descent_with_1d_search(x_0: np.ndarray,
                                   func: BiFunc,
                                   sc: StopCondition,
                                   step_selector: Callable[[int, np.ndarray, np.ndarray, BiFunc], float],
-            very_low = 0.05,
-            low = 0.25,
-            high = 3/4
-                                  ) -> np.ndarray:
-
+                                  very_low = 0.05,
+                                  low = 0.25,
+                                  high = 3/4) -> np.ndarray:
     delta = 1.0
-    x = x_0.copy()
-    k = 0
-    trajectory = [x.copy()]
-
-    def dogleg() -> np.ndarray:
-        p = -(np.linalg.inv(B) @ grad)
-
-        if np.linalg.norm(p) > delta:
-            h = step_selector(k, x, grad, func)
-            p_b = p
-            p_u = -h * grad
-
-            norm_pu = np.linalg.norm(p_u)
-
-            if norm_pu >= delta:
-                p = delta * p_u / norm_pu
-            else:
-                pb_pu = np.dot(p_b - p_u, p_b - p_u)
-                dot_pU_pB_pU = np.dot(p_u, p_b - p_u)
-                fact = dot_pU_pB_pU**2 - pb_pu * (np.dot(p_u, p_u) - delta**2)
-                tau = (-dot_pU_pB_pU + math.sqrt(fact)) / pb_pu
-                p = p_u + tau * (p_b - p_u)
-        return p
-
-    while True:
-        grad = func.gradient(x)
-
-        if (grad.T @ grad) < 1e-9:
-            EPS = 1e-7
-
-            def random_eps():
-                return random.choice([-EPS, EPS])
-            grad += np.array([random_eps(), random_eps()])
-
-        prev = x.copy()
-
+    
+    def next_point(x, grad, func, k):
+        nonlocal delta
         B = func.hessian(x)
-
+        
         p = 0
         DELTA_ITERATIONS_LIMIT = 15
         for _ in range(DELTA_ITERATIONS_LIMIT):
-            p = dogleg()
+            p = _compute_dogleg_step(x, grad, B, delta, step_selector, k, func)
 
             df = func(x) - func(x + p)
             dm = -(np.dot(grad, p) + 0.5 * np.dot(p, np.dot(B, p)))
@@ -293,19 +261,9 @@ def newton_descent_with_1d_search(x_0: np.ndarray,
 
             break
 
-        x = x + p
-
-        trajectory.append(x.copy())
-
-        if sc(x, prev) or k > MAX_ITERATION_LIMIT:
-            break
-        NEWTON_DESCENT_WITH_1D_SEARCH_LOGGING = False
-        if NEWTON_DESCENT_WITH_1D_SEARCH_LOGGING:
-            print(f'k: {k}, x: {x}, f: {func(x)}')
-
-        k += 1
-
-    return np.array(trajectory)
+        return x + p
+    
+    return _iterative_descent(x_0, func, sc, next_point)
 
 
 def find_b(func: Func) -> float:
