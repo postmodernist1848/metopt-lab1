@@ -194,7 +194,7 @@ def damped_newton_descent(x_0: np.ndarray,
                           sc: StopCondition,
                           learning_rate_func: LearningRateFunc = lr_constant(0.1)
                           ) -> np.ndarray:
-    def next_point(x, grad, func, k):ы
+    def next_point(x, grad, func, k):
         alpha = learning_rate_func(k)
         p = np.linalg.inv(func.hessian(x)) @ grad
         return x - alpha * p
