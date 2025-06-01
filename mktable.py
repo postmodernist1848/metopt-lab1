@@ -1,16 +1,14 @@
 from lib.algorithms import *
-from lib.funcs import q2, f4, fsinsin, fopp3
+from lib.funcs import q2, f4, fsinsin, frosenbrock
 from lib.stats import BiFuncStatsDecorator, print_stats
 
 
 def main():
-    xs = [np.array(x) for x in ([-1, -1], [1.0, 4.0], [1.0, 1.0])]
-
     funcs = [
-        ("q2", BiFuncStatsDecorator(q2)), # "x.T*[[0.1, 0], [0, 3]]*x"
-        ("f4", BiFuncStatsDecorator(f4)), # "(x**2 - 1)**2 + y**2 + 0.5 * x"
-        ("sin(x) + sin(y)", BiFuncStatsDecorator(fsinsin)),
-        ("fopp3", BiFuncStatsDecorator(fopp3))
+        ("q2", BiFuncStatsDecorator(q2), [np.array((1.0, 4.0))]), # "x.T*[[0.1, 0], [0, 3]]*x"
+        ("f4", BiFuncStatsDecorator(f4), [np.array((1.0, 1.0))]), # "(x**2 - 1)**2 + y**2 + 0.5 * x"
+        ("sin(x) + sin(y)", BiFuncStatsDecorator(fsinsin), [np.array((1.0, 1.0))]),
+        ("rosenbrock", BiFuncStatsDecorator(frosenbrock), [np.array((2.0, 2.0))])
     ]
 
     stop_condition = relative_x_condition()
@@ -48,10 +46,10 @@ def main():
             lambda x_0, func: scipy_bfgs(x_0, func))   
     ]
 
-    for algorithm_name, applier in algorithms:
-        for func_name, func in funcs:
+    for func_name, func, points in funcs:
+        for algorithm_name, applier in algorithms:
             assert func.min() is not None, f"minimum value for {func_name} is not found"
-            for x_0 in xs:
+            for x_0 in points:
                 trajectory = applier(x_0, func)
 
                 print_stats(

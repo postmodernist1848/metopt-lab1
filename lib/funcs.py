@@ -159,6 +159,9 @@ def opp3(x, y):
     term3 = np.cos(5*x)*np.sin(5*y)/5
     return term1 + term2 + term3
 
+def rosenbrock(x, y):
+    return (1-x)**2 + 100 * (y - x**2)**2
+
 f1 = BiFuncCallableWrapper(mf1)
 f2 = BiFuncCallableWrapper(mf2)
 f3 = BiFuncCallableWrapper(mf3)
@@ -168,4 +171,5 @@ f6 = BiFuncCallableWrapper(mf6, 0)
 fopp = BiFuncCallableWrapper(opp, -657.573)
 fopp2 = BiFuncCallableWrapper(opp2, 0) # 1
 fopp3 = BiFuncCallableWrapper(opp3, -0.119789)
-fsinsin = BiFuncCallableWrapper(lambda x, y: math.sin(x) + math.sin(y), -2) # 2
+fsinsin = BiFuncCallableWrapper(lambda x, y: math.sin(x) + math.sin(y), -2.0) # 2
+frosenbrock = BiFuncCallableWrapper(rosenbrock, 0.0)
