@@ -363,3 +363,5 @@ def scipy_bfgs(x_0: np.ndarray, func: BiFunc) -> np.ndarray:
         disp=False
     )
     return np.array(trajectory)
+
+    
