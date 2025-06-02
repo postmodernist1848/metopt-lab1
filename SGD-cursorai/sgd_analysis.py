@@ -6,7 +6,7 @@ import torch
 from sgd_implementation import train_polynomial_regression, predict
 from lib.algorithms import lr_constant, lr_geometric, lr_exponential_decay, lr_polynomial_decay
 from torch_implementation import create_model, get_optimizers, train_model, predict as torch_predict
-from lib.adagrad import train_adagrad, predict as adagrad_predict
+from adagrad import train_adagrad, predict as adagrad_predict
 
 # Set random seeds for reproducibility
 np.random.seed(42)
