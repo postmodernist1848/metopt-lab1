@@ -1,5 +1,6 @@
 from typing import List, Protocol, Tuple
 import numpy as np
+from lib.algorithms import LearningRateFunc
 import torch
 
 type Dataset = List[Tuple[np.ndarray, float]]
@@ -86,16 +87,18 @@ class ErrorFunc:
         
         return result / len(indices) + self.reg.gradient(parameters)
 
-def sgd(m: Model, reg: Regularization, d: Dataset, epochs: int, batch_size: int, lr: float):
-    # assign zero vector to w of size m.n_parameters()
+def sgd(m: Model, reg: Regularization, d: Dataset, epochs: int, batch_size: int, lr: LearningRateFunc, momentum: float = 0.0):
     w = np.zeros(m.n_parameters())
     ef = ErrorFunc(m, reg, d)
+    v = np.zeros_like(w)  # velocity for momentum
+    
     for k in range(epochs):
         indices = np.random.choice(len(d), batch_size, replace=False)
         grad = ef.gradient(w, indices)
-        w -= lr * grad
-
-        # print(f"Epoch {k}, Parameters: {w}, Loss: {ef(w)}, grad: {grad}")
+        
+        # Update velocity and weights with momentum
+        v = momentum * v - lr(k) * grad
+        w += v
 
     return w
 
