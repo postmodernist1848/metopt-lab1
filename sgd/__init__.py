@@ -99,27 +99,33 @@ def sgd(m: Model, reg: Regularization, d: Dataset, epochs: int, batch_size: int,
 
     return w
 
-def torch_sgd(dataset: Dataset, degree: int = 2, epochs: int = 100, batch_size: int = 1, lr: float = 0.01) -> np.ndarray:
-    # Convert dataset to tensors
+def torch_sgd(dataset: Dataset, degree: int = 2, epochs: int = 100, batch_size: int = 1, lr: float = 0.01, 
+              optimizer_type: str = 'SGD', momentum: float = 0.9) -> np.ndarray:
     X = torch.tensor([x[0] for x in dataset], dtype=torch.float32)
     y = torch.tensor([x[1] for x in dataset], dtype=torch.float32)
     
-    # Create polynomial features
     X_poly = torch.cat([X**i for i in range(degree + 1)], dim=1)
     
-    # Initialize model
     model = torch.nn.Linear(degree + 1, 1)
-    optimizer = torch.optim.SGD(model.parameters(), lr=lr)
+    
+    # Select optimizer based on type
+    optimizers = {
+        'SGD': torch.optim.SGD(model.parameters(), lr=lr),
+        'SGD_Momentum': torch.optim.SGD(model.parameters(), lr=lr, momentum=momentum),
+        'SGD_Nesterov': torch.optim.SGD(model.parameters(), lr=lr, momentum=momentum, nesterov=True),
+        'Adam': torch.optim.Adam(model.parameters(), lr=lr),
+        'RMSprop': torch.optim.RMSprop(model.parameters(), lr=lr),
+        'Adagrad': torch.optim.Adagrad(model.parameters(), lr=lr)
+    }
+    
+    optimizer = optimizers.get(optimizer_type, optimizers['SGD'])
     criterion = torch.nn.MSELoss()
     
-    # Training loop
     for _ in range(epochs):
-        # Shuffle data
         indices = torch.randperm(len(dataset))
         X_shuffled = X_poly[indices]
         y_shuffled = y[indices]
         
-        # Mini-batch training
         for i in range(0, len(dataset), batch_size):
             batch_X = X_shuffled[i:i+batch_size]
             batch_y = y_shuffled[i:i+batch_size]
@@ -131,3 +137,4 @@ def torch_sgd(dataset: Dataset, degree: int = 2, epochs: int = 100, batch_size: 
             optimizer.step()
     
     return model.weight.detach().numpy().flatten()
+
