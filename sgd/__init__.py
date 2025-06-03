@@ -9,10 +9,13 @@ class Model(Protocol):
     def __call__(self, parameters, x) -> float: ...
     def gradient(self, parameters, x) -> np.ndarray: ...
     def n_parameters(self) -> int: ...
+    def n_ops(self) -> int: ...
+    def n_grad_ops(self) -> int: ...
 
 class Regularization(Protocol):
     def __call__(self, parameters: np.ndarray) -> float: ...
     def gradient(self, parameters: np.ndarray) -> np.ndarray: ...
+    def n_ops(self, parameters: np.ndarray) -> int: ...
 
 class L1Regularization(Regularization):
     def __init__(self, λ: float = 1.0):
@@ -25,6 +28,10 @@ class L1Regularization(Regularization):
     def gradient(self, parameters: np.ndarray) -> np.ndarray:
         return self.λ * np.sign(parameters)
 
+    def n_ops(self, parameters: np.ndarray) -> int:
+        return len(parameters) if self.λ != 0 else 0
+
+
 class L2Regularization(Regularization):
     def __init__(self, λ: float = 1.0):
         assert λ >= 0, "Regularization parameter λ must be non-negative."
@@ -35,6 +42,10 @@ class L2Regularization(Regularization):
 
     def gradient(self, parameters: np.ndarray) -> np.ndarray:
         return self.λ * 2 * parameters
+    
+    def n_ops(self, parameters: np.ndarray) -> int:
+        return len(parameters) if self.λ != 0 else 0
+    
 
 class ElasticRegularization(Regularization):
     def __init__(self, λ1: float = 1.0, λ2: float = 1.0):
@@ -46,6 +57,9 @@ class ElasticRegularization(Regularization):
 
     def gradient(self, parameters: np.ndarray) -> np.ndarray:
         return self.l1.gradient(parameters) + self.l2.gradient(parameters)
+
+    def n_ops(self, parameters: np.ndarray) -> int:
+        return self.l1.n_ops(parameters) + self.l2.n_ops(parameters)
 
 class Polynomial(Model):
     def __init__(self, deg: int):
@@ -63,6 +77,12 @@ class Polynomial(Model):
     
     def n_parameters(self) -> int:
         return self.deg + 1
+    
+    def n_ops(self) -> int:
+        return (self.deg + 1) * 3 - 1
+    
+    def n_grad_ops(self) -> int:
+        return self.deg + 1 
 
 class ErrorFunc:
     def __init__(self, model: Model, reg: Regularization, dataset: Dataset):
@@ -73,34 +93,42 @@ class ErrorFunc:
     def __call__(self, parameters: np.ndarray) -> float:
         return sum((self.model(parameters, x) - y)**2 for x, y in self.dataset) / len(self.dataset) + self.reg(parameters)
     
-    def gradient(self, parameters: np.ndarray, indices) -> np.ndarray:
+    def gradient(self, parameters: np.ndarray, indices) -> Tuple[np.ndarray, int]:
         '''Calculate stochastic gradient for given indices.'''
 
         if len(indices) == 0:
             raise ValueError("Indices list cannot be empty.")
 
         result = np.zeros_like(parameters)
+        total_ops = 0
+        
         for i in indices:
             x, y = self.dataset[i]
+            
             grad = 2 * (self.model(parameters, x) - y) * self.model.gradient(parameters, x)
             result += grad
+            
+            total_ops += self.model.n_ops() + self.model.n_grad_ops() + 2 * len(parameters) + 2
         
-        return result / len(indices) + self.reg.gradient(parameters)
+        
+        return result / len(indices) + self.reg.gradient(parameters), total_ops + 2 * len(parameters) + self.reg.n_ops(parameters)
 
 def sgd(m: Model, reg: Regularization, d: Dataset, epochs: int, batch_size: int, lr: LearningRateFunc, momentum: float = 0.0):
-    w = np.zeros(m.n_parameters())
+    w = np.random.normal(0, 0.1, m.n_parameters())
     ef = ErrorFunc(m, reg, d)
-    v = np.zeros_like(w)  # velocity for momentum
+    v = np.zeros_like(w)
+    total_ops = 0
     
     for k in range(epochs):
         indices = np.random.choice(len(d), batch_size, replace=False)
-        grad = ef.gradient(w, indices)
+        grad, grad_ops = ef.gradient(w, indices)
         
-        # Update velocity and weights with momentum
         v = momentum * v - lr(k) * grad
         w += v
-
-    return w
+        
+        total_ops += 3 * len(w) + grad_ops
+    
+    return w, total_ops
 
 def torch_sgd(dataset: Dataset, degree: int = 2, epochs: int = 100, batch_size: int = 1, lr: float = 0.01, 
               optimizer_type: str = 'SGD', momentum: float = 0.9) -> np.ndarray:
@@ -111,7 +139,6 @@ def torch_sgd(dataset: Dataset, degree: int = 2, epochs: int = 100, batch_size: 
     
     model = torch.nn.Linear(degree + 1, 1)
     
-    # Select optimizer based on type
     optimizers = {
         'SGD': torch.optim.SGD(model.parameters(), lr=lr),
         'SGD_Momentum': torch.optim.SGD(model.parameters(), lr=lr, momentum=momentum),
