@@ -1,5 +1,6 @@
 from typing import List, Protocol, Tuple
 import numpy as np
+import torch
 
 type Dataset = List[Tuple[np.ndarray, float]]
 
@@ -94,6 +95,39 @@ def sgd(m: Model, reg: Regularization, d: Dataset, epochs: int, batch_size: int,
         grad = ef.gradient(w, indices)
         w -= lr * grad
 
-        print(f"Epoch {k}, Parameters: {w}, Loss: {ef(w)}, grad: {grad}")
+        # print(f"Epoch {k}, Parameters: {w}, Loss: {ef(w)}, grad: {grad}")
 
     return w
+
+def torch_sgd(dataset: Dataset, degree: int = 2, epochs: int = 100, batch_size: int = 1, lr: float = 0.01) -> np.ndarray:
+    # Convert dataset to tensors
+    X = torch.tensor([x[0] for x in dataset], dtype=torch.float32)
+    y = torch.tensor([x[1] for x in dataset], dtype=torch.float32)
+    
+    # Create polynomial features
+    X_poly = torch.cat([X**i for i in range(degree + 1)], dim=1)
+    
+    # Initialize model
+    model = torch.nn.Linear(degree + 1, 1)
+    optimizer = torch.optim.SGD(model.parameters(), lr=lr)
+    criterion = torch.nn.MSELoss()
+    
+    # Training loop
+    for _ in range(epochs):
+        # Shuffle data
+        indices = torch.randperm(len(dataset))
+        X_shuffled = X_poly[indices]
+        y_shuffled = y[indices]
+        
+        # Mini-batch training
+        for i in range(0, len(dataset), batch_size):
+            batch_X = X_shuffled[i:i+batch_size]
+            batch_y = y_shuffled[i:i+batch_size]
+            
+            optimizer.zero_grad()
+            y_pred = model(batch_X)
+            loss = criterion(y_pred, batch_y.unsqueeze(1))
+            loss.backward()
+            optimizer.step()
+    
+    return model.weight.detach().numpy().flatten()
