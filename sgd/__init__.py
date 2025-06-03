@@ -114,7 +114,7 @@ class ErrorFunc:
         return result / len(indices) + self.reg.gradient(parameters), total_ops + 2 * len(parameters) + self.reg.n_ops(parameters)
 
 def sgd(m: Model, reg: Regularization, d: Dataset, epochs: int, batch_size: int, lr: LearningRateFunc, momentum: float = 0.0):
-    w = np.random.normal(0, 0.1, m.n_parameters())
+    w = np.zeros(m.n_parameters())
     ef = ErrorFunc(m, reg, d)
     v = np.zeros_like(w)
     total_ops = 0
