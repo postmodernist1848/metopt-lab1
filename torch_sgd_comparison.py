@@ -1,5 +1,5 @@
 import torch
-import torch.nn as nn
+import torch.nn
 import numpy as np
 import matplotlib.pyplot as plt
 from time import time
@@ -7,7 +7,7 @@ from sgd import Polynomial, L1Regularization, L2Regularization, sgd
 from lib.algorithms import lr_constant
 from typing import List, Tuple, Dict, Any, Optional
 import json
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 
 @dataclass
 class TestConfig:
@@ -82,7 +82,6 @@ def custom_sgd_test(dataset: List[Tuple[np.ndarray, float]], config: TestConfig)
     
     end_time = time()
     
-    # Вычисляем потери на всем датасете
     losses = []
     for epoch in range(config.n_epochs):
         epoch_loss = 0
@@ -110,7 +109,6 @@ def torch_sgd_test(dataset: List[Tuple[np.ndarray, float]], config: TestConfig) 
     optimizer = torch.optim.SGD(model.parameters(), lr=config.learning_rate, momentum=config.momentum)
     criterion = torch.nn.MSELoss()
     
-    # Определяем функцию регуляризации
     match config.reg_type:
         case 'l1':
             def regularization(model):
@@ -154,7 +152,6 @@ def plot_comparison(results: Dict[str, TestResults], config: TestConfig):
     """Plot comparison of losses and execution times for a single test."""
     plt.figure(figsize=(15, 5))
     
-    # Plot losses
     plt.subplot(1, 3, 1)
     plt.plot(results['custom'].losses, label='Custom SGD')
     plt.plot(results['torch'].losses, label='PyTorch SGD')
@@ -163,7 +160,6 @@ def plot_comparison(results: Dict[str, TestResults], config: TestConfig):
     plt.title(f'Loss Comparison\n{config.name}')
     plt.legend()
     
-    # Plot execution times
     plt.subplot(1, 3, 2)
     times = [results['custom'].time, results['torch'].time]
     labels = ['Custom SGD', 'PyTorch SGD']
@@ -171,7 +167,6 @@ def plot_comparison(results: Dict[str, TestResults], config: TestConfig):
     plt.ylabel('Time (seconds)')
     plt.title('Execution Time Comparison')
     
-    # Plot parameter comparison
     plt.subplot(1, 3, 3)
     x = np.arange(4)
     width = 0.35
@@ -190,16 +185,13 @@ def plot_summary_comparison(all_results: Dict[str, Dict[str, Dict[str, Any]]]):
     """Create a summary comparison plot of all tests."""
     configs = list(all_results.keys())
     
-    # Подготовка данных
     custom_times = [all_results[cfg]['custom']['time'] for cfg in configs]
     torch_times = [all_results[cfg]['torch']['time'] for cfg in configs]
     custom_losses = [all_results[cfg]['custom']['final_loss'] for cfg in configs]
     torch_losses = [all_results[cfg]['torch']['final_loss'] for cfg in configs]
     
-    # Создаем фигуру с двумя подграфиками
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
     
-    # График времени выполнения
     x = np.arange(len(configs))
     width = 0.35
     
@@ -213,13 +205,11 @@ def plot_summary_comparison(all_results: Dict[str, Dict[str, Dict[str, Any]]]):
     ax1.set_xticklabels(configs, rotation=45, ha='right')
     ax1.legend()
     
-    # Добавляем значения над столбцами
     for i, v in enumerate(custom_times):
         ax1.text(i - width/2, v, f'{v:.2f}s', ha='center', va='bottom')
     for i, v in enumerate(torch_times):
         ax1.text(i + width/2, v, f'{v:.2f}s', ha='center', va='bottom')
     
-    # График точности
     ax2.bar(x - width/2, custom_losses, width, label='Custom SGD', color='blue', alpha=0.7)
     ax2.bar(x + width/2, torch_losses, width, label='PyTorch SGD', color='red', alpha=0.7)
     
@@ -229,21 +219,17 @@ def plot_summary_comparison(all_results: Dict[str, Dict[str, Dict[str, Any]]]):
     ax2.set_xticks(x)
     ax2.set_xticklabels(configs, rotation=45, ha='right')
     ax2.legend()
-    ax2.set_ylim(top=3.0)  # Ограничение высоты графика точности
+    ax2.set_ylim(top=3.0)
     
-    # Добавляем значения над столбцами
     for i, v in enumerate(custom_losses):
         ax2.text(i - width/2, v, f'{v:.2e}', ha='center', va='bottom')
     for i, v in enumerate(torch_losses):
         ax2.text(i + width/2, v, f'{v:.2e}', ha='center', va='bottom')
     
-    # Настраиваем внешний вид
     plt.tight_layout()
     
-    # Сохраняем график
     plt.savefig('summary_comparison.png')
     
-    # Показываем график
     plt.show()
 
 def run_test(config: TestConfig) -> Dict[str, TestResults]:
@@ -264,7 +250,6 @@ def run_test(config: TestConfig) -> Dict[str, TestResults]:
 
 def main():
     """Main function to run all tests."""
-    # Определяем конфигурации для тестов
     test_configs = [
         TestConfig('base', 0.01, 100, 32),
         TestConfig('small_batch', 0.01, 100, 8),
@@ -294,11 +279,9 @@ def main():
         if results['custom'].total_ops is not None:
             print(f"Total operations in custom SGD: {results['custom'].total_ops}")
     
-    # Сохраняем все результаты в JSON
     with open('sgd_comparison_results.json', 'w') as f:
         json.dump(all_results, f, indent=2)
     
-    # Создаем итоговый график сравнения
     plot_summary_comparison(all_results)
 
 if __name__ == "__main__":
