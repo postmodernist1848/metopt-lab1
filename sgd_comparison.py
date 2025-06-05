@@ -6,6 +6,8 @@ import gc
 import tracemalloc
 from lib import algorithms
 import matplotlib.pyplot as plt
+import os
+
 
 quadratic = sgd.Polynomial(3)
 dataset_parameters = np.array([4, 3, 2, 1])  # y = 4 + 3x + 2x^2 + x^3
@@ -168,7 +170,7 @@ configs = [
         'regularization': sgd.L1Regularization(0),
         'learning_rate': algorithms.lr_constant(0.01),
         'batch_size': 1,
-        'epochs': 3200
+        'epochs': 1600
     },
     {
         'name': 'Single M(μ=0.9)',
@@ -176,14 +178,14 @@ configs = [
         'learning_rate': algorithms.lr_constant(0.01),
         'momentum': 0.9,
         'batch_size': 1,
-        'epochs': 3200
+        'epochs': 1600
     },
     {
         'name': 'Single L1(λ=0.1)',
         'regularization': sgd.L1Regularization(0.1),
         'learning_rate': algorithms.lr_constant(0.01),
         'batch_size': 1,
-        'epochs': 3200
+        'epochs': 1600
     },
     {
         'name': 'Full (bs=500)',
@@ -304,29 +306,33 @@ def plot_with_outliers(ax, x, y, title, ylabel, color='b', rotation=45, ylim=Non
                 f'{height:.2e}' if height > 1000 else f'{height:.2f}',
                 ha='center', va='bottom')
 
+dir_name = 'sgd_comparison'
+if not os.path.exists(dir_name):
+    os.makedirs(dir_name)
+
 fig1 = plt.figure(figsize=(12, 6))
 ax1 = plt.gca()
 plot_with_outliers(ax1, names, accuracies, 'Accuracy Comparison', 'MSE', 'b', ylim=3)
 plt.tight_layout(pad=3.0)
-plt.savefig('accuracy_comparison.png')
+plt.savefig(f'{dir_name}/accuracy_comparison.png')
 
 fig2 = plt.figure(figsize=(12, 6))
 ax2 = plt.gca()
 plot_with_outliers(ax2, names, times, 'Execution Time Comparison', 'Time (seconds)', 'r')
 plt.tight_layout(pad=3.0)
-plt.savefig('time_comparison.png')
+plt.savefig(f'{dir_name}/time_comparison.png')
 
 fig3 = plt.figure(figsize=(12, 6))
 ax3 = plt.gca()
 plot_with_outliers(ax3, names, memories, 'Memory Usage Comparison', 'Memory (B)', 'g')
 plt.tight_layout(pad=3.0)
-plt.savefig('memory_comparison.png')
+plt.savefig(f'{dir_name}/memory_comparison.png')
 
 fig4 = plt.figure(figsize=(12, 6))
 ax4 = plt.gca()
 plot_with_outliers(ax4, names, operations, 'Computational Complexity Comparison', 'Total Operations', 'm')
 plt.tight_layout(pad=3.0)
-plt.savefig('operations_comparison.png')
+plt.savefig(f'{dir_name}/operations_comparison.png')
 
 plt.show()
 

@@ -8,6 +8,11 @@ from lib.algorithms import lr_constant
 from typing import List, Tuple, Dict, Any, Optional
 import json
 from dataclasses import dataclass
+import os
+
+dir_name = 'torch_sgd_comparison'
+if not os.path.exists(dir_name):
+    os.makedirs(dir_name)
 
 @dataclass
 class TestConfig:
@@ -178,7 +183,7 @@ def plot_comparison(results: Dict[str, TestResults], config: TestConfig):
     plt.legend()
     
     plt.tight_layout()
-    plt.savefig(f'torch_sgd_comparison_{config.name.replace(" ", "_")}.png')
+    plt.savefig(f'{dir_name}/torch_sgd_comparison_{config.name.replace(" ", "_")}.png')
     plt.close()
 
 def plot_summary_comparison(all_results: Dict[str, Dict[str, Dict[str, Any]]]):
@@ -228,7 +233,8 @@ def plot_summary_comparison(all_results: Dict[str, Dict[str, Dict[str, Any]]]):
     
     plt.tight_layout()
     
-    plt.savefig('summary_comparison.png')
+
+    plt.savefig(f'{dir_name}/summary_comparison.png')
     
     plt.show()
 
@@ -279,7 +285,7 @@ def main():
         if results['custom'].total_ops is not None:
             print(f"Total operations in custom SGD: {results['custom'].total_ops}")
     
-    with open('sgd_comparison_results.json', 'w') as f:
+    with open(f'{dir_name}/sgd_comparison_results.json', 'w') as f:
         json.dump(all_results, f, indent=2)
     
     plot_summary_comparison(all_results)
