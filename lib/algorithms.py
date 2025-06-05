@@ -126,7 +126,7 @@ def steepest_gradient_descent_wolfe(x_0: np.ndarray,
                                     func: BiFunc,
                                     sc: StopCondition) -> np.ndarray:
     def step_selector(k, x, grad, func):
-        return wolfe(x, func, grad)
+        return wolfe(x, func, grad)[0]
 
     return gradient_descent(x_0, func, step_selector, sc)
 
@@ -146,45 +146,47 @@ def bfgs(x_0: np.ndarray,
          eps: float) -> np.ndarray:
 
     k = 0
-    I = np.identity(2)
-    c = I
+    n = len(x_0)
+    I = np.identity(n)
     x = x_0
     grad = func.gradient(x)
+    f_x = func(x)
     trajectory = [x.copy()]
+
+    H0 = I * (1.0 / np.linalg.norm(grad))
+    c = H0
 
     while np.linalg.norm(grad) > eps and k < MAX_ITERATION_LIMIT:
         p_k = -c @ grad
-        alpha = wolfe(x, func, grad)
-
-        x_next = x + alpha * p_k
-        grad_next = func.gradient(x_next)
+        
+        _, x_next, f_next, grad_next = wolfe(x, func, grad, p_k, f_x)
 
         s_k = x_next - x
         y_k = grad_next - grad
+        y_k_dot_s_k = np.dot(y_k, s_k)
 
-        rho_k1 = (y_k.T @ s_k)
+        if y_k_dot_s_k <= 1e-10 * np.linalg.norm(s_k) * np.linalg.norm(y_k):
+            x = x_next
+            grad = grad_next
+            f_x = f_next
+            trajectory.append(x)
+            k += 1
+            continue
 
-        if abs(rho_k1) < 1e-9:
-            if rho_k1 == 0:
-                rho_k1 = 1e-9
-            else:
-                rho_k1 = np.sign(rho_k1) * 1e-9
+        rho_k = 1.0 / y_k_dot_s_k
 
-        rho_k = 1.0 / rho_k1
-
-        c1 = (I - rho_k * s_k[:, np.newaxis] @ y_k[np.newaxis, :])
-        c2 = (I - rho_k * y_k[:, np.newaxis] @ s_k[np.newaxis, :])
-        c3 = rho_k * s_k[:, np.newaxis] @ s_k[np.newaxis, :]
+        c1 = (I - rho_k * np.outer(s_k, y_k))
+        c2 = (I - rho_k * np.outer(y_k, s_k))
+        c3 = rho_k * np.outer(s_k, s_k)
 
         c = c1 @ c @ c2 + c3
 
         x = x_next
         grad = grad_next
+        f_x = f_next
 
         trajectory.append(x)
-
         k += 1
-        # print(f'k: {k}, x: {x}, f: {func(x)}')
 
     return np.array(trajectory)
 
@@ -315,32 +317,58 @@ def armijo(x_k: np.ndarray, func: BiFunc, grad: np.ndarray) -> float:
         alpha = q*alpha
     return float(alpha)
 
-
-def wolfe(x_k: np.ndarray, func: BiFunc, grad: np.ndarray) -> float:
-    derivative: float = -float(grad @ grad.T)
-
+def wolfe(x_k: np.ndarray, 
+          func: BiFunc, 
+          grad: np.ndarray, 
+          p_k: np.ndarray = None,
+          f_x: float = None) -> tuple[float, np.ndarray, float, np.ndarray]:
+   
     # "c1 is usually chosen to be quite small while c2 is much larger"
     c1 = random.random()*0.05 + 0.1
     c2 = random.random()*0.05 + 0.9
-
-    alpha_left = 0
-    alpha_right = 1e10
-    func_x_k = func(x_k)
-    alpha = 1
+    
+    alpha = 1.0
+    g_x = np.dot(grad, p_k)
+    
+    x_next = x_k + alpha * p_k
+    f_next = func(x_next)
+    grad_next = func.gradient(x_next)
+    g_next = np.dot(grad_next, p_k)
+    
+    if f_next <= f_x + c1 * alpha * g_x and abs(g_next) <= c2 * abs(g_x):
+        return alpha, x_next, f_next, grad_next
+        
+    alpha_min = 0
+    alpha_max = 1
+    
     for _ in range(MAX_ITERATION_LIMIT):
-        if (func(x_k - alpha*grad) > func_x_k + c1*alpha*derivative):
-            alpha_right = alpha
-            alpha = (alpha_left + alpha_right) / 2
+        alpha = 0.5 * (alpha_min + alpha_max)
+        x_next = x_k + alpha * p_k
+        f_next = func(x_next)
+        
+        if f_next > f_x + c1 * alpha * g_x:
+            alpha_max = alpha
             continue
-        wolfe_grad = func.gradient(x_k - alpha*grad)
-        wolfe_derivative = -float(wolfe_grad @ grad.T)
-        if (abs(wolfe_derivative) > c2*abs(derivative)):
-            alpha_left = alpha
-            alpha = (alpha_left + alpha_right) / 2
-            continue
-        break
-
-    return float(alpha)
+            
+        grad_next = func.gradient(x_next)
+        g_next = np.dot(grad_next, p_k)
+        
+        if abs(g_next) <= c2 * abs(g_x):
+            break
+            
+        if g_next < 0:
+            alpha_min = alpha
+        else:
+            alpha_max = alpha
+            
+        if alpha_max - alpha_min < 0.1:
+            break
+    
+    x_next = x_k + alpha * p_k
+    f_next = func(x_next)
+    grad_next = func.gradient(x_next)
+    
+    return alpha, x_next, f_next, grad_next
 
 def scipy_cg(x_0: np.ndarray, func: BiFunc) -> np.ndarray:
     trajectory = [x_0]
