@@ -309,9 +309,17 @@ def armijo(x_k: np.ndarray, func: BiFunc, grad: np.ndarray) -> float:
     derivative: float = -float(grad @ grad.T)
     c1 = random.random() * 0.8 + 0.1
     q = random.random() * 0.8 + 0.1
-    alpha: float = abs(func(x_k) / max(abs(derivative * c1), 1e-9))
+    
+    f_xk = func(x_k)
+    alpha: float = abs(f_xk / max(abs(derivative * c1), 1e-9))
+    
+    min_alpha = 1e-10 
+    
     for _ in range(MAX_ITERATION_LIMIT):
-        l_alpha: float = func(x_k) + c1*alpha*derivative
+        if alpha < min_alpha:
+            return min_alpha
+            
+        l_alpha: float = f_xk + c1*alpha*derivative
         if func(x_k - alpha*grad) < float(l_alpha):
             break
         alpha = q*alpha
