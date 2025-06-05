@@ -10,7 +10,7 @@ from memory_profiler import profile
 
 quadratic = sgd.Polynomial(3)
 dataset_parameters = np.array([4, 3, 2, 1])  # y = 4 + 3x + 2x^2 + x^3
-dataset = [(np.array([x]), quadratic(dataset_parameters, np.array([x])) + np.random.normal(0, 0.1)) for x in np.linspace(-2, 2, 500)]
+dataset = [(np.array([x]), quadratic(dataset_parameters, np.array([x])) + np.random.normal(0, 0.1)) for x in np.linspace(-2, 2, 501)]
 
 def measure_time_and_memory(func, *args, **kwargs):
     gc.collect()
@@ -25,7 +25,7 @@ def measure_time_and_memory(func, *args, **kwargs):
     return result, end_time - start_time, tracemalloc.get_traced_memory()[1], total_ops
 
 
-batch_sizes = [2 * i for i in range(1, len(dataset) // 2)]
+batch_sizes = [2 * i for i in range(1, len(dataset) // 2 + 1)]
 epochs = 100
 lr = algorithms.lr_constant(0.01)
 reg = sgd.L1Regularization(0)
