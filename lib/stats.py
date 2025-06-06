@@ -59,7 +59,7 @@ def plot_trajectory(func: BiFunc, trajectory: np.ndarray, title=None, plot_size=
     ax.set_zlabel('Z')  # type: ignore
     plt.show()
 
-def print_stats(func: BiFuncStatsDecorator, trajectory: np.ndarray, title=None, plot=True):
+def print_stats(func: BiFuncStatsDecorator, trajectory: np.ndarray, title=None, plot=True, comparison_results=None, func_name=None, algorithm_name=None):
     cc, gc, hc = func.call_count, func.gradient_count, func.hessian_count
     calculated_min = func(trajectory[-1])
     print(f'title: {title}')
@@ -69,10 +69,19 @@ def print_stats(func: BiFuncStatsDecorator, trajectory: np.ndarray, title=None, 
     print(f'Gradient evaluations: {gc}')
     print(f'Hessian evaluations: {hc}')
     min_value = func.min()
+    error = abs(calculated_min - min_value)
     if min_value is not None:
         print(f'True minimum: {min_value}')
-        print(f'Error: {abs(calculated_min - min_value)}')
+        print(f'Error: {error}')
     print()
     if plot:
         plot_trajectory(func, trajectory, title)
+
+    comparison_results[func_name][algorithm_name] = {
+        'func_evals': cc,
+        'grad_evals': gc,
+        'hess_evals': hc,
+        'error': error
+    }
+    
     func.reset()

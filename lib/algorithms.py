@@ -2,7 +2,7 @@ from typing import Callable, Protocol
 import numpy as np
 import random
 import math
-from scipy.optimize import line_search, fmin_cg, fmin_bfgs
+from scipy.optimize import line_search, fmin_bfgs, minimize
 
 '''
 
@@ -380,12 +380,14 @@ def wolfe(x_k: np.ndarray,
 
 def scipy_cg(x_0: np.ndarray, func: BiFunc) -> np.ndarray:
     trajectory = [x_0]
-    fmin_cg(
+    minimize(
         func,
         x_0,
-        func.gradient,
+        method='Newton-CG',
+        jac=func.gradient,
+        hess=func.hessian,
         callback=lambda x: trajectory.append(x),
-        disp=False
+        options={'disp': False}
     )
     return np.array(trajectory)
 
