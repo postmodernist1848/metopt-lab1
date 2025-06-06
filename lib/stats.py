@@ -81,7 +81,8 @@ def print_stats(func: BiFuncStatsDecorator, trajectory: np.ndarray, title=None, 
         'func_evals': cc,
         'grad_evals': gc,
         'hess_evals': hc,
-        'error': error
+        'error': error,
+        'iterations': len(trajectory) - 1
     }
     
     func.reset()

@@ -1,7 +1,7 @@
 from lib.algorithms import *
 from lib.funcs import q2, f4, fsinsin, frosenbrock
 from lib.stats import BiFuncStatsDecorator, print_stats
-from lib.plotting import plot_methods_comparison, ensure_plot_dir
+from lib.plotting import plot_methods_comparison, plot_iterations_comparison, ensure_plot_dir
 import os
 import numpy as np
 
@@ -18,15 +18,15 @@ def main():
     dichotomy_eps = 1e-9
     bfgs_eps = 1e-2
 
-    dog_leg_optimized = {'very_low': 0.006589013504624153, 'low': 0.49597617703076274, 'high': 0.669573144357006}
+    dog_leg_optimized = {'very_low': 0.2044510175379078, 'low': 0.6001909282923029, 'high': 0.6783683164271473}
 
     algorithms = [
         ("Gradient Descent LR const(0.1)",
             lambda x_0, func: learning_rate_scheduling(x_0, func, lr_constant(0.1), relative_f_condition(func, x_0))),
         ("Gradient Descent LR exp(0.5)",
             lambda x_0, func: learning_rate_scheduling(x_0, func, lr_exponential_decay(0.5), relative_f_condition(func, x_0))),
-        ("Gradient Descent LR exp(1.27166510627676)",
-            lambda x_0, func: learning_rate_scheduling(x_0, func, lr_exponential_decay(1.27166510627676), relative_f_condition(func, x_0))),
+        ("Gradient Descent LR exp(8.409207704291449)",
+            lambda x_0, func: learning_rate_scheduling(x_0, func, lr_exponential_decay(8.409207704291449), relative_f_condition(func, x_0))),
         ("Armijo Gradient Descent",
             lambda x_0, func: steepest_gradient_descent_armijo(x_0, func, stop_condition)),
         ("Dichotomy Gradient Descent",
@@ -36,7 +36,7 @@ def main():
         ("Damped Newton Descent",
             lambda x_0, func: damped_newton_descent(x_0, func, relative_f_condition(func, x_0), lr_constant(0.1))),
         ("Damped Newton Descent optimized™",
-            lambda x_0, func: damped_newton_descent(x_0, func, stop_condition, lr_constant(0.8725560318527655))),
+            lambda x_0, func: damped_newton_descent(x_0, func, stop_condition, lr_constant(0.9988419725118234))),
         ("Dog Leg Armijo 0.05 0.25 0.75",
             lambda x_0, func: newton_descent_with_1d_search(x_0, func, stop_condition, armijo_step_selector)),
         ("Dog Leg Armijo optimized™",
@@ -64,8 +64,13 @@ def main():
                 print_stats(
                     func, trajectory, f'{func_name} | {algorithm_name} | x0={x_0}', plot=False, comparison_results=comparison_results, func_name=func_name, algorithm_name=algorithm_name)
         
+        # Plot main comparison
         comparison_path = os.path.join(plot_dir, f"{func_name}_comparison.png")
         plot_methods_comparison(func_name, comparison_results[func_name], comparison_path)
+        
+        # Plot iterations separately
+        iterations_path = os.path.join(plot_dir, f"{func_name}_iterations.png")
+        plot_iterations_comparison(func_name, comparison_results[func_name], iterations_path)
 
 
 if __name__ == "__main__":
