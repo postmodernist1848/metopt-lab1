@@ -69,6 +69,8 @@ def build_path_dict(distance: list) -> dict:
 def get_distance(parent: Vector) -> list:
     distance = []
     n = len(parent)
+    if n == 0:
+        return distance
     prev_point = parent[0]
     for i in range(1, n + 1):
         point = parent[i % n]
@@ -84,22 +86,29 @@ def crossover_commivoyager_smart(parent1: Vector, parent2: Vector) -> Vector:
 
     distance = get_distance(parent1)
     distance = distance[:alpha]
-
     path = build_path_dict(distance)
     paths = build_paths(path)
-
     merged_path = []
     for path in paths:
         merged_path.extend(path)
 
-    merged_path_set = set(merged_path)
-    diff = []
+    distance_p2 = get_distance(parent2)
+    path_p2 = build_path_dict(distance_p2)
+    paths_p2 = build_paths(path_p2)
+    merged_path_p2 = []
+    for path in paths_p2:
+        merged_path_p2.extend(path)
     
-    for point in parent2:
-        if tuple(point) not in merged_path_set:
-            diff.append(point)
-            
-    merged_path.extend(diff)
+    merged_path_set = set(merged_path)
+    merged_path_p2_set = set(merged_path_p2)
+    diff = merged_path_p2_set - merged_path_set
+
+    only_in_p2 = []
+    for point in merged_path_p2:
+        if tuple(point) in diff:
+            only_in_p2.append(point)
+
+    merged_path.extend(only_in_p2)
     return merged_path
 
 def mutate_commivoyager(individual: Vector, mutation_rate: float = 0.1) -> Vector:
@@ -143,7 +152,7 @@ def commivoyager_genetic_test(points: Vector, correct_value: float = None):
     test_genetic_algorithm(population, 
                          crossover_commivoyager_smart,
                          mutate_commivoyager,
-                         func, 60, 0.1, 1e-2)
+                         func, 60, 0, 1e-2)
     
     x = min(population, key=func)
     commivoyager_plot(x0, x, "Initial vs Optimized path")
