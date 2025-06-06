@@ -30,22 +30,22 @@ class Quadratic:
 
 
 class BiFuncCallableWrapper:
-    f: Callable[[float, float], float]
+    f: Callable[[np.ndarray], float]
     min_value: float | None = None
     h: float = 0.001
 
-    def __init__(self, f: Callable[[float, float], float], min_value: float | None = None):
+    def __init__(self, f: Callable[[np.ndarray], float], min_value: float | None = None):
         self.f = f
         self.min_value = min_value
 
     def __call__(self, x: np.ndarray) -> float:
-        return self.f(x[0], x[1])
+        return self.f(x)
 
     def gradient(self, x: np.ndarray) -> np.ndarray:
-        d1 = (self.f(x[0] + self.h, x[1]) -
-              self.f(x[0] - self.h, x[1])) / (2*self.h)
-        d2 = (self.f(x[0], x[1] + self.h) -
-              self.f(x[0], x[1] - self.h)) / (2*self.h)
+        d1 = (self.f(np.array([x[0] + self.h, x[1]])) -
+              self.f(np.array([x[0] - self.h, x[1]]))) / (2*self.h)
+        d2 = (self.f(np.array([x[0], x[1] + self.h])) -
+              self.f(np.array([x[0], x[1] - self.h]))) / (2*self.h)
         g = np.array([d1, d2])
         return g
 
@@ -54,17 +54,18 @@ class BiFuncCallableWrapper:
 
         # Use a central difference formula for better accuracy
         # For f_xx (second derivative with respect to x)
-        f_xx = (self.f(x1 + self.h, x2) - 2 * self.f(x1, x2) +
-                self.f(x1 - self.h, x2)) / (self.h * self.h)
+        f_xx = (self.f(np.array([x1 + self.h, x2])) - 2 * self.f(np.array([x1, x2])) +
+                self.f(np.array([x1 - self.h, x2]))) / (self.h * self.h)
 
         # For f_yy (second derivative with respect to y)
-        f_yy = (self.f(x1, x2 + self.h) - 2 * self.f(x1, x2) +
-                self.f(x1, x2 - self.h)) / (self.h * self.h)
+        f_yy = (self.f(np.array([x1, x2 + self.h])) - 2 * self.f(np.array([x1, x2])) +
+                self.f(np.array([x1, x2 - self.h]))) / (self.h * self.h)
 
         # For f_xy (mixed derivative)
         # Use the cross partial difference formula
-        f_xy = (self.f(x1 + self.h, x2 + self.h) - self.f(x1 + self.h, x2 - self.h) -
-                self.f(x1 - self.h, x2 + self.h) + self.f(x1 - self.h, x2 - self.h)) / (4 * self.h * self.h)
+        f_xy = (self.f(np.array([x1 + self.h, x2 + self.h])) - self.f(np.array([x1 + self.h, x2 - self.h])) -
+                self.f(np.array([x1 - self.h, x2 + self.h])) + self.f(np.array([x1 - self.h, x2 - self.h]))
+                ) / (4 * self.h * self.h)
 
         hessian = np.array([
             [f_xx, f_xy],
@@ -117,50 +118,60 @@ q3 = Quadratic(
 )
 
 
-def mf1(x, y):
-    term1 = np.sin(x) * np.cos(y)
-    term2 = -1.0 * np.exp(-(x**2 + y**2)/10)
-    term3 = 0.1 * (x**2 + y**2)
+def mf1(x: np.ndarray):
+    x1, x2 = x
+    term1 = np.sin(x1) * np.cos(x2)
+    term2 = -1.0 * np.exp(-(x1**2 + x2**2)/10)
+    term3 = 0.1 * (x1**2 + x2**2)
     return term1 + term2 + term3
 
 
-def mf2(x, y):
-    return (x**2 + y - 11)**2 + (x + y**2 - 7)**2
+def mf2(x: np.ndarray):
+    x1, x2 = x
+    return (x1**2 + x2 - 11)**2 + (x1 + x2**2 - 7)**2
 
 
-def mf3(x, y):
-    term2 = -1.0 * np.exp(-(x**2 + y**2)/10)
+def mf3(x: np.ndarray):
+    x1, x2 = x
+    term2 = -1.0 * np.exp(-(x1**2 + x2**2)/10)
     return term2
 
 
-def mf4(x, y):
-    return (x**2 - 1)**2 + y**2 + 0.5 * x
+def mf4(x: np.ndarray):
+    x1, x2 = x
+    return (x1**2 - 1)**2 + x2**2 + 0.5 * x1
 
 
-def mf5(x, y):
-    return (x**2 - 1)**2 + y**2
+def mf5(x: np.ndarray):
+    x1, x2 = x
+    return (x1**2 - 1)**2 + x2**2
 
 
-def mf6(x, y):
-    norm_squared = x**2 + y**2
+def mf6(x: np.ndarray):
+    x1, x2 = x
+    norm_squared = x1**2 + x2**2
     term1 = ((norm_squared - 2)**2)**(1/8)
-    term2 = 0.5 * (0.5 * norm_squared + (x + y))
+    term2 = 0.5 * (0.5 * norm_squared + (x1 + x2))
     return term1 + term2 + 0.5
 
-def opp(x, y):
-    return 0.65 * (x - 21) ** 2 + 1.1*(y+37)**2 -7 * x + 12 * y - 15
+def opp(x: np.ndarray):
+    x1, x2 = x
+    return 0.65 * (x1 - 21) ** 2 + 1.1*(x2+37)**2 -7 * x1 + 12 * x2 - 15
 
-def opp2(x, y):
-    return (x**2 + y - 11)**2 + (x + y**2 - 7)**2
+def opp2(x: np.ndarray):
+    x1, x2 = x
+    return (x1**2 + x2 - 11)**2 + (x1 + x2**2 - 7)**2
 
-def opp3(x, y):
-    term1 = np.sin(10*(x**2 + y**2)) / 10 
-    term2 = (x**2 + y**2)/4 
-    term3 = np.cos(5*x)*np.sin(5*y)/5
+def opp3(x: np.ndarray):
+    x1, x2 = x
+    term1 = np.sin(10*(x1**2 + x2**2)) / 10 
+    term2 = (x1**2 + x2**2)/4 
+    term3 = np.cos(5*x1)*np.sin(5*x2)/5
     return term1 + term2 + term3
 
-def rosenbrock(x, y):
-    return (1-x)**2 + 100 * (y - x**2)**2
+def rosenbrock(x: np.ndarray):
+    x1, x2 = x
+    return (1-x1)**2 + 100 * (x2 - x1**2)**2
 
 f1 = BiFuncCallableWrapper(mf1)
 f2 = BiFuncCallableWrapper(mf2)
@@ -171,5 +182,5 @@ f6 = BiFuncCallableWrapper(mf6, 0)
 fopp = BiFuncCallableWrapper(opp, -657.573)
 fopp2 = BiFuncCallableWrapper(opp2, 0) # 1
 fopp3 = BiFuncCallableWrapper(opp3, -0.119789)
-fsinsin = BiFuncCallableWrapper(lambda x, y: math.sin(x) + math.sin(y), -2.0) # 2
+fsinsin = BiFuncCallableWrapper(lambda x: math.sin(x[0]) + math.sin(x[1]), -2.0) # 2
 frosenbrock = BiFuncCallableWrapper(rosenbrock, 0.0)

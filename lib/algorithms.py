@@ -327,10 +327,19 @@ def armijo(x_k: np.ndarray, func: BiFunc, grad: np.ndarray) -> float:
 
 def wolfe(x_k: np.ndarray, 
           func: BiFunc, 
-          grad: np.ndarray, 
+          grad: np.ndarray = None, 
           p_k: np.ndarray = None,
           f_x: float = None) -> tuple[float, np.ndarray, float, np.ndarray]:
    
+    if grad is None:
+        grad = func.gradient(x_k)
+    
+    if p_k is None:
+        p_k = -grad
+    
+    if f_x is None:
+        f_x = func(x_k)
+    
     # "c1 is usually chosen to be quite small while c2 is much larger"
     c1 = random.random()*0.05 + 0.1
     c2 = random.random()*0.05 + 0.9
