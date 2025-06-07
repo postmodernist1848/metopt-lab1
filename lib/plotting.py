@@ -16,28 +16,28 @@ def plot_methods_comparison(func_name, results, save_path):
     plt.title('Function evaluations')
     plt.xticks(rotation=45, ha='right')
     plt.grid(True)
-    if max(func_evals) > 20000:
-        plt.ylim(0, 20000)
+    plt.yscale('log')
     
     plt.subplot(2, 2, 2)
     plt.bar(methods, grad_evals)
     plt.title('Gradient evaluations')
     plt.xticks(rotation=45, ha='right')
     plt.grid(True)
-    if max(grad_evals) > 3000:
-        plt.ylim(0, 3000)
+    plt.yscale('log')
     
     plt.subplot(2, 2, 3)
     plt.bar(methods, hess_evals)
     plt.title('Hessian evaluations')
     plt.xticks(rotation=45, ha='right')
     plt.grid(True)
+    plt.yscale('log')
     
     plt.subplot(2, 2, 4)
     plt.bar(methods, errors)
     plt.title('Final error')
     plt.xticks(rotation=45, ha='right')
     plt.grid(True)
+    plt.yscale('log')
     
     plt.suptitle(f'Comparison of methods for {func_name}')
     plt.tight_layout()
@@ -55,8 +55,7 @@ def plot_iterations_comparison(func_name, results, save_path):
     plt.title(f'Number of iterations for {func_name}')
     plt.xticks(rotation=45, ha='right')
     plt.grid(True)
-    if max(iterations) > 3000:
-        plt.ylim(0, 3000)
+    plt.yscale('log')
 
     plt.tight_layout()
     plt.savefig(save_path, bbox_inches='tight')

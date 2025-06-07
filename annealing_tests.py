@@ -3,14 +3,15 @@ from annealing import *
 from lib.funcs import *
 from annealing_funcs import *
 from typing import Callable
+from commivoyager import commivoyager
 
-def print_x(prefix: str, x: np.ndarray):
+def print_x(prefix: str, x: Vector):
     print(prefix, end=" ")
     for i in range(len(x)):
         print(x[i], end=" ")
     print()
 
-def run_annealing_test(x0: np.ndarray, 
+def run_annealing_test(x0: Vector, 
                       func: BiFunc, 
                       F: Function,
                       T: Callable[[float], float] = calc_temperature(1 - 1e-2),
@@ -29,9 +30,9 @@ def run_annealing_test(x0: np.ndarray,
         print(f"Ошибка: {abs(func(x) - func.min())}")
     return x
 
-def commivoyager_annealing_test(x0: np.ndarray, correct_value: float = None):
+def commivoyager_annealing_test(x0: Vector, correct_value: float = None):
     func = BiFuncCallableWrapper(commivoyager, correct_value)
-    x = run_annealing_test(x0, func, Function(commivoyager_F), calc_temperature(1 - 1e-4), test_name="Коммивояжер")
+    x = run_annealing_test(x0, func, Function(commivoyager_F), calc_temperature(1 - 1e-2), test_name="Коммивояжер")
     commivoyager_plot(x0, x, "Initial vs Optimized path")
 
 def armijo_annealing_test(f: BiFunc):
@@ -47,15 +48,15 @@ def constraint_annealing_test(f: BiFunc):
     run_annealing_test(x0, f, Function(f, constraint_annealing_F), test_name="Constraint")
 
 def main():
-    # commivoyager_annealing_test(np.array([[0, 0], [2, 0], [4, 0], [0, 2], [0, 4], [-2, 0], [-4, 0], [0, -2], [0, -4], [1, 1]]), 26.14213562373095)
+    commivoyager_annealing_test(np.array([[0, 0], [2, 0], [4, 0], [0, 2], [0, 4], [-2, 0], [-4, 0], [0, -2], [0, -4], [1, 1]]), 26.14213562373095)
     # commivoyager_annealing_test(
     #     np.array(
     #         [[random.uniform(0, 100), random.uniform(0, 100)] for _ in range(200)]
     #         ),
     #     None)
-    armijo_annealing_test(f4)
-    wolfe_annealing_test(f4)
-    constraint_annealing_test(f4)
+    # armijo_annealing_test(f4)
+    # wolfe_annealing_test(f4)
+    # constraint_annealing_test(f4)
 
 if __name__ == "__main__":
     main()

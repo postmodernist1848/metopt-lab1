@@ -89,10 +89,12 @@ def genetic(population: Vector,
     assert tournament_size > 0
     assert 1 >= mutation_rate >= 0
     assert eps > 0
+
     population_size = len(population)
     curr_population = population
     k = 0
     for _ in range(MAX_ITERATIONS):
+        print(f"Iteration {k}")
         new_population = np.zeros_like(curr_population)
         for i in range(population_size):
             parent1 = tournament_selection(curr_population, fitness_function, tournament_size)

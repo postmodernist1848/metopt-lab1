@@ -1,15 +1,9 @@
 import numpy as np
 from lib.funcs import armijo, wolfe
 from lib.funcs import BiFunc
+from annealing import Vector
 
-def commivoyager(x: np.ndarray) -> float:
-    n = len(x)
-    res = 0
-    for i in range(n):
-        res += np.linalg.norm(x[(i+1) % n] - x[i])
-    return res
-
-def commivoyager_F(xi: np.ndarray) -> np.ndarray:
+def commivoyager_F(xi: Vector) -> Vector:
     i = np.random.randint(0, len(xi))
     j = np.random.randint(0, len(xi))
     i, j = min(i, j), max(i, j)
