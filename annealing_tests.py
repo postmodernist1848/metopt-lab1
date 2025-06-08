@@ -32,7 +32,7 @@ def run_annealing_test(x0: Vector,
 
 def commivoyager_annealing_test(x0: Vector, correct_value: float = None):
     func = BiFuncCallableWrapper(commivoyager, correct_value)
-    x = run_annealing_test(x0, func, Function(commivoyager_F), calc_temperature(1 - 1e-2), test_name="Коммивояжер")
+    x = run_annealing_test(x0, func, Function(commivoyager_F), calc_temperature(1 - 1e-4), test_name="Коммивояжер")
     commivoyager_plot(x0, x, "Initial vs Optimized path")
 
 def armijo_annealing_test(f: BiFunc):
@@ -48,12 +48,12 @@ def constraint_annealing_test(f: BiFunc):
     run_annealing_test(x0, f, Function(f, constraint_annealing_F), test_name="Constraint")
 
 def main():
-    commivoyager_annealing_test(np.array([[0, 0], [2, 0], [4, 0], [0, 2], [0, 4], [-2, 0], [-4, 0], [0, -2], [0, -4], [1, 1]]), 26.14213562373095)
-    # commivoyager_annealing_test(
-    #     np.array(
-    #         [[random.uniform(0, 100), random.uniform(0, 100)] for _ in range(200)]
-    #         ),
-    #     None)
+    # commivoyager_annealing_test(np.array([[0, 0], [2, 0], [4, 0], [0, 2], [0, 4], [-2, 0], [-4, 0], [0, -2], [0, -4], [1, 1]]), 26.14213562373095)
+    commivoyager_annealing_test(
+        np.array(
+            [[random.uniform(0, 200), random.uniform(0, 200)] for _ in range(100)]
+            ),
+        None)
     # armijo_annealing_test(f4)
     # wolfe_annealing_test(f4)
     # constraint_annealing_test(f4)

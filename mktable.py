@@ -64,11 +64,9 @@ def main():
                 print_stats(
                     func, trajectory, f'{func_name} | {algorithm_name} | x0={x_0}', plot=False, comparison_results=comparison_results, func_name=func_name, algorithm_name=algorithm_name)
         
-        # Plot main comparison
         comparison_path = os.path.join(plot_dir, f"{func_name}_comparison.png")
         plot_methods_comparison(func_name, comparison_results[func_name], comparison_path)
         
-        # Plot iterations separately
         iterations_path = os.path.join(plot_dir, f"{func_name}_iterations.png")
         plot_iterations_comparison(func_name, comparison_results[func_name], iterations_path)
 

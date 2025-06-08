@@ -1,9 +1,15 @@
 import matplotlib.pyplot as plt
 from pathlib import Path
 
+def add_labels(x, y):
+    for i in range(len(x)):
+        if (y[i] == 0):
+            continue
+        plt.text(i, y[i], f"{y[i]:.3e}", ha='center')
+
 def plot_methods_comparison(func_name, results, save_path):
     """Plot comparison of different methods for a given function."""
-    plt.figure(figsize=(15, 15))
+    plt.figure(figsize=(30, 30))
     
     methods = list(results.keys())
     func_evals = [results[m]['func_evals'] for m in methods]
@@ -13,6 +19,7 @@ def plot_methods_comparison(func_name, results, save_path):
     
     plt.subplot(2, 2, 1)
     plt.bar(methods, func_evals)
+    add_labels(methods, func_evals)
     plt.title('Function evaluations')
     plt.xticks(rotation=45, ha='right')
     plt.grid(True)
@@ -20,6 +27,7 @@ def plot_methods_comparison(func_name, results, save_path):
     
     plt.subplot(2, 2, 2)
     plt.bar(methods, grad_evals)
+    add_labels(methods, grad_evals)
     plt.title('Gradient evaluations')
     plt.xticks(rotation=45, ha='right')
     plt.grid(True)
@@ -27,6 +35,7 @@ def plot_methods_comparison(func_name, results, save_path):
     
     plt.subplot(2, 2, 3)
     plt.bar(methods, hess_evals)
+    add_labels(methods, hess_evals)
     plt.title('Hessian evaluations')
     plt.xticks(rotation=45, ha='right')
     plt.grid(True)
@@ -34,6 +43,7 @@ def plot_methods_comparison(func_name, results, save_path):
     
     plt.subplot(2, 2, 4)
     plt.bar(methods, errors)
+    add_labels(methods, errors)
     plt.title('Final error')
     plt.xticks(rotation=45, ha='right')
     plt.grid(True)
@@ -46,12 +56,13 @@ def plot_methods_comparison(func_name, results, save_path):
 
 def plot_iterations_comparison(func_name, results, save_path):
     """Plot comparison of iterations for different methods."""
-    plt.figure(figsize=(15, 8))
+    plt.figure(figsize=(30, 30))
     
     methods = list(results.keys())
     iterations = [results[m]['iterations'] for m in methods]
     
     plt.bar(methods, iterations)
+    add_labels(methods, iterations)
     plt.title(f'Number of iterations for {func_name}')
     plt.xticks(rotation=45, ha='right')
     plt.grid(True)

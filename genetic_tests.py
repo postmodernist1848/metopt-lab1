@@ -16,7 +16,8 @@ def test_genetic_algorithm(population: Vector,
                                  fitness_function,
                                  tournament_size,
                                  mutation_rate,
-                                 eps)
+                                 eps,
+                                 live_plotting=True)
     x = min(clever_population, key=fitness_function)
     print(x)
     print("function value:", fitness_function(x))
@@ -27,25 +28,28 @@ def test_genetic_algorithm(population: Vector,
 
 def f4_genetic_test():
     population = init_population(-10, 10, 100, 2)
-    func = f4
-    test_genetic_algorithm(population, crossover, mutate, func, 10, 0.2, 1e-3)
+    test_genetic_algorithm(population, crossover, mutate, f4, 10, 0.2, 1e-3)
 
 def commivoyager_genetic_test(points: Vector, correct_value: float = None):
     x0 = np.random.permutation(points)
     
-    population = init_population_commivoyager(x0, 100)
+    population = init_population_commivoyager(x0, 50)
     func = BiFuncCallableWrapper(commivoyager, correct_value)
     x = test_genetic_algorithm(population, 
                          crossover_commivoyager,
                          mutate_commivoyager,
-                         func, 60, 0.2, 1e-2)
+                         func, 20, 0.3, 1e-2)
     
-    commivoyager_plot(x0, x, "Initial vs Optimized path")
+    # commivoyager_plot(x0, x, "Initial vs Optimized path")
 
 if __name__ == "__main__":
     # f4_genetic_test()
+    # commivoyager_genetic_test(
+    #     np.array([[0, 0], [2, 0], [4, 0],
+    #                [0, 2], [0, 4], [-2, 0],
+    #                  [-4, 0], [0, -2], [0, -4],
+    #                    [1, 1]]), 26.14213562373095)
     commivoyager_genetic_test(
-        np.array([[0, 0], [2, 0], [4, 0],
-                   [0, 2], [0, 4], [-2, 0],
-                     [-4, 0], [0, -2], [0, -4],
-                       [1, 1]]), 26.14213562373095)
+        np.array(
+            [[random.uniform(0, 100), random.uniform(0, 100)] for _ in range(50)]
+            ), None)

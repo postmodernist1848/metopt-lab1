@@ -3,8 +3,9 @@ from typing import Callable, Optional
 from lib.funcs import BiFunc
 import random
 import matplotlib.pyplot as plt
+import time
 
-MAX_ITERATIONS = 1000
+MAX_ITERATIONS = 10000
 Vector = np.ndarray
 
 def commivoyager_plot(initial_points: Vector, optimized_points: Vector, title: str = "Paths comparison"):
@@ -63,7 +64,6 @@ def annealing(E: Function, T: Callable[[Vector, int], Vector], F: Function, P: C
         ti = T(ti, k)
         k += 1
     return s_curr, k
-     
 
 # ------------------------------------------------------------
 
@@ -85,16 +85,23 @@ def mutate(individual: Vector, mutation_rate: float = 0.1) -> Vector:
 def genetic(population: Vector,
              crossover: Callable[[Vector, Vector], Vector],
              mutate: Callable[[Vector, float], Vector],
-             fitness_function: BiFunc, tournament_size: int, mutation_rate: float, eps: float) -> Vector:
+             fitness_function: BiFunc, tournament_size: int, mutation_rate: float, eps: float, live_plotting: bool = False) -> Vector:
     assert tournament_size > 0
     assert 1 >= mutation_rate >= 0
     assert eps > 0
 
+    live_plotting = live_plotting and len(population[0].shape) == 2
+
     population_size = len(population)
     curr_population = population
     k = 0
+
+    if live_plotting:   
+        plt.ion()
+        _, ax = plt.subplots(figsize=(10, 6))
+
     for _ in range(MAX_ITERATIONS):
-        print(f"Iteration {k}")
+        # print(f"Iteration {k}")
         new_population = np.zeros_like(curr_population)
         for i in range(population_size):
             parent1 = tournament_selection(curr_population, fitness_function, tournament_size)
@@ -105,6 +112,28 @@ def genetic(population: Vector,
         curr_population = new_population
         curr_best = min(curr_population, key=fitness_function)
         k += 1
+
+        if live_plotting:
+            plot_commivoyager(ax, curr_best, fitness_function, k)
+
         if (fitness_function.min() is not None and fitness_function(curr_best) - fitness_function.min() < eps):
             break
+
+    if live_plotting:
+        plt.ioff()
+        plt.show()
+
     return curr_population, k
+
+def plot_commivoyager(ax, points: Vector, fitness_function: BiFunc, k: int):
+    ax.clear()
+    ax.plot(points[:, 0], points[:, 1], 'b-', alpha=0.3)
+    ax.scatter(points[:, 0], points[:, 1], c='red', s=100)
+    ax.plot([points[-1, 0], points[0, 0]], [points[-1, 1], points[0, 1]], 'b-', alpha=0.3)
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+
+    ax.set_title(f'Generation {k}, Best fitness: {fitness_function(points):.2e}')
+    ax.grid(True)
+    plt.draw()
+    plt.pause(1e-7)
