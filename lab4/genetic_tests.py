@@ -21,8 +21,10 @@ def test_genetic_algorithm(population: Vector,
     x = min(clever_population, key=fitness_function)
     print(x)
     print("function value:", fitness_function(x))
-    if fitness_function.min() is not None:
-        print("error:", abs(fitness_function(x) - fitness_function.min()))
+
+    true_min = fitness_function.min()
+    if true_min is not None:
+        print("error:", abs(fitness_function(x) - true_min))
     print("iterations:", k)
     return x
 
@@ -30,7 +32,7 @@ def f4_genetic_test():
     population = init_population(-10, 10, 100, 2)
     test_genetic_algorithm(population, crossover, mutate, f4, 10, 0.2, 1e-3)
 
-def commivoyager_genetic_test(points: Vector, correct_value: float = None):
+def commivoyager_genetic_test(points: Vector, correct_value: float | None = None):
     x0 = np.random.permutation(points)
     
     population = init_population_commivoyager(x0, 50)
