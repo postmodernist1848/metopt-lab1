@@ -1,4 +1,4 @@
-from annealing import *
+from lab4.annealing import *
 from lib.funcs import *
 from lab4.annealing_funcs import *
 from lab4.commivoyager import *
