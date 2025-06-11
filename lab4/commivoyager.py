@@ -1,5 +1,5 @@
 import numpy as np
-from annealing import Vector
+from lab4.annealing import Vector
 
 def commivoyager(x: Vector) -> float:
     n = len(x)

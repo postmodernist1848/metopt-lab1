@@ -1,7 +1,7 @@
 import numpy as np
 from lib.funcs import armijo, wolfe
 from lib.funcs import BiFunc
-from annealing import Vector
+from lab4.annealing import Vector
 
 def commivoyager_F(xi: Vector) -> Vector:
     i = np.random.randint(0, len(xi))
