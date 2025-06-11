@@ -5,7 +5,6 @@ from lib.plotting import plot_methods_comparison, plot_iterations_comparison, en
 import os
 import numpy as np
 
-
 def main():
     funcs = [
         ("q2", BiFuncStatsDecorator(q2), [np.array((1.0, 4.0))]), # "x.T*[[0.1, 0], [0, 3]]*x"

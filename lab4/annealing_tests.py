@@ -1,9 +1,9 @@
 import numpy as np
 from annealing import *
 from lib.funcs import *
-from annealing_funcs import *
+from lab4.annealing_funcs import *
 from typing import Callable
-from commivoyager import commivoyager
+from lab4.commivoyager import commivoyager
 
 def print_x(prefix: str, x: Vector):
     print(prefix, end=" ")

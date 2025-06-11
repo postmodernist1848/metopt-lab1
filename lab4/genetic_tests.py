@@ -1,7 +1,7 @@
 from annealing import *
 from lib.funcs import *
-from annealing_funcs import *
-from commivoyager import *
+from lab4.annealing_funcs import *
+from lab4.commivoyager import *
 
 def test_genetic_algorithm(population: Vector, 
                          crossover_func: Callable[[Vector, Vector], Vector],
