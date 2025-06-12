@@ -3,7 +3,6 @@ from typing import Callable, Optional
 from lib.funcs import BiFunc
 import random
 import matplotlib.pyplot as plt
-import time
 
 MAX_ITERATIONS = 10000
 Vector = np.ndarray
