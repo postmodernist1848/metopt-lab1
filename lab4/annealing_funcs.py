@@ -7,5 +7,5 @@ def commivoyager_F(xi: Vector) -> Vector:
     i, j = min(i, j), max(i, j)
     return np.concatenate((xi[:i], xi[i:j+1][::-1], xi[j+1:]))
 
-def lol_F(x: Vector) -> Vector:
+def random_F(x: Vector) -> Vector:
     return x + np.random.uniform(-0.3, 0.3, x.shape)

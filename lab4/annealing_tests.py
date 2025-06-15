@@ -38,13 +38,13 @@ def commivoyager_annealing_test(x0: Vector, correct_value: float = None):
     x = run_annealing_test(x0, func, BiFuncCallableWrapper(commivoyager_F), calc_temperature(1 - 1e-4), test_name="Коммивояжер")
     commivoyager_plot(x0, x, "Initial vs Optimized path")
 
-def lol_test(f: BiFunc):
+def random_test(f: BiFunc):
     x0 = np.array([0, 0])
-    run_annealing_test(x0, f, BiFuncCallableWrapper(lol_F), calc_temperature(1 - 1e-1), test_name="LOL")
+    run_annealing_test(x0, f, BiFuncCallableWrapper(random_F), calc_temperature(1 - 1e-1), test_name="LOL")
     
 
 def main():
-    lol_test(BiFuncStatsDecorator(f4))
+    random_test(BiFuncStatsDecorator(f4))
     # commivoyager_annealing_test(np.array([[0, 0], [2, 0], [4, 0], [0, 2], [0, 4], [-2, 0], [-4, 0], [0, -2], [0, -4], [1, 1]]), 26.14213562373095)
     # commivoyager_annealing_test(
     #     np.array(
