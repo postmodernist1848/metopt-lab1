@@ -27,17 +27,6 @@ def commivoyager_plot(initial_points: Vector, optimized_points: Vector, title: s
     plt.suptitle(title)
     plt.show()
 
-class Function:
-    f: BiFunc
-    F: Optional[Callable] = None
-
-    def __init__(self, f: BiFunc, F: Optional[Callable] = None):
-        self.f = f
-        self.F = F
-
-    def __call__(self, x: Vector) -> float:
-        return self.F(x, self.f, self.f.gradient(x)) if self.F is not None else self.f(x)
-
 def calc_temperature(γ: float) -> Callable[[Vector, int], Vector]:
     return lambda t, k: γ*t
 
@@ -47,7 +36,7 @@ def calc_probability(ΔE: float, t: float) -> float:
 def calc_next_state(s_next: Vector, s_curr: Vector, p: float) -> Vector:
     return s_next if np.random.rand() < p else s_curr
 
-def annealing(E: Function, T: Callable[[Vector, int], Vector], F: Function, P: Callable[[float, float], float], s0: Vector, t_min: float, t_0: Vector) -> Vector:
+def annealing(E: BiFunc, T: Callable[[Vector, int], Vector], F: BiFunc, P: Callable[[float, float], float], s0: Vector, t_min: float, t_0: Vector) -> Vector:
     ti = t_0
     s_curr = s0
     k = 0

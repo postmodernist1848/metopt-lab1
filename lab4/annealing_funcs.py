@@ -1,6 +1,4 @@
 import numpy as np
-from lib.funcs import armijo, wolfe
-from lib.funcs import BiFunc
 from lab4.annealing import Vector
 
 def commivoyager_F(xi: Vector) -> Vector:
@@ -9,12 +7,5 @@ def commivoyager_F(xi: Vector) -> Vector:
     i, j = min(i, j), max(i, j)
     return np.concatenate((xi[:i], xi[i:j+1][::-1], xi[j+1:]))
 
-def constraint_annealing_F(x: np.ndarray, func: BiFunc, grad: np.ndarray) -> np.ndarray:
-    return x - 0.1*grad
-
-def armijo_annealing_F(x: np.ndarray, func: BiFunc, grad: np.ndarray) -> np.ndarray:
-    return x - armijo(x, func, grad)*grad
-
-def wolfe_annealing_F(x: np.ndarray, func: BiFunc, grad: np.ndarray) -> np.ndarray:
-    return x - wolfe(x, func, grad)[0]*grad
-
+def lol_F(x: Vector) -> Vector:
+    return x + np.random.uniform(-0.3, 0.3, x.shape)
