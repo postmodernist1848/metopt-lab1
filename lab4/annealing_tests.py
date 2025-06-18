@@ -8,6 +8,7 @@ from lib.stats import BiFuncStatsDecorator
 import matplotlib.pyplot as plt
 from pathlib import Path
 from mpl_toolkits.mplot3d import Axes3D
+import random
 
 def print_x(prefix: str, x: Vector):
     print(prefix, end=" ")
@@ -22,9 +23,8 @@ def run_annealing_test(x0: Vector,
                       P: Callable[[float, float], float] = calc_probability,
                       t_max: float = 100,
                       t_min: float = 1e-3,
-                      test_name: str = "Test",
-                      max_iterations: int = 1000) -> Tuple[Dict, List[Vector]]:
-    x, iter_count, history = annealing(func, T, F, P, s0=x0, t_min=t_min, t_0=np.array([t_max]), max_iterations=max_iterations)
+                      test_name: str = "Test") -> Tuple[Dict, List[Vector]]:
+    x, iter_count, history = annealing(func, T, F, P, s0=x0, t_min=t_min, t_0=np.array([t_max]))
     
     print(f"\n{test_name}:")
     print_x("Оптимальная точка: ", x)
@@ -171,7 +171,6 @@ def plot_convergence(histories: Dict[str, List[List[Vector]]], func: BiFunc, sav
     plt.close()
 
 def run_multiple_tests(func: BiFunc, num_tests: int = 10):
-    """Run multiple tests with different parameters."""
     results = {
         'default': [],
         'high_temp': [],
@@ -186,26 +185,17 @@ def run_multiple_tests(func: BiFunc, num_tests: int = 10):
         'fast_cooling': []
     }
     
-    if func == frosenbrock:
-        t_max = 50
-        t_min = 1e-2
-        cooling_rate = 1 - 1e-2
-        max_iterations = 500
-        x_range = (-2, 2)
-    else:
-        t_max = 100
-        t_min = 1e-3
-        cooling_rate = 1 - 1e-2
-        max_iterations = 1000
-        x_range = (-5, 5)
+    t_max = 100
+    t_min = 1e-3
+    cooling_rate = 1 - 1e-1
+    x_range = (-2, 2)
     
     for _ in range(num_tests):
         x0 = np.random.uniform(x_range[0], x_range[1], size=2)
         result, history = run_annealing_test(
             x0, func, BiFuncCallableWrapper(random_F),
             calc_temperature(cooling_rate), calc_probability,
-            t_max=t_max, t_min=t_min, test_name="Default",
-            max_iterations=max_iterations
+            t_max=t_max, t_min=t_min, test_name="Default"
         )
         results['default'].append(result)
         histories['default'].append(history)
@@ -215,9 +205,7 @@ def run_multiple_tests(func: BiFunc, num_tests: int = 10):
         result, history = run_annealing_test(
             x0, func, BiFuncCallableWrapper(random_F),
             calc_temperature(1 - 1e-1), calc_probability,
-            t_max=t_max*2, t_min=t_min, test_name="High Temperature",
-            max_iterations=max_iterations
-        )
+            t_max=t_max*2, t_min=t_min, test_name="High Temperature")
         results['high_temp'].append(result)
         histories['high_temp'].append(history)
         
@@ -225,10 +213,8 @@ def run_multiple_tests(func: BiFunc, num_tests: int = 10):
         x0 = np.random.uniform(x_range[0], x_range[1], size=2)
         result, history = run_annealing_test(
             x0, func, BiFuncCallableWrapper(random_F),
-            calc_temperature(1 - 1e-3), calc_probability,
-            t_max=t_max/2, t_min=t_min, test_name="Low Temperature",
-            max_iterations=max_iterations
-        )
+            calc_temperature(cooling_rate), calc_probability,
+            t_max=t_max, t_min=t_min, test_name="Low Temperature")
         results['low_temp'].append(result)
         histories['low_temp'].append(history)
         
@@ -236,10 +222,8 @@ def run_multiple_tests(func: BiFunc, num_tests: int = 10):
         x0 = np.random.uniform(x_range[0], x_range[1], size=2)
         result, history = run_annealing_test(
             x0, func, BiFuncCallableWrapper(random_F),
-            calc_temperature(1 - 1e-1), calc_probability,
-            t_max=t_max, t_min=t_min*10, test_name="Fast Cooling",
-            max_iterations=max_iterations
-        )
+            calc_temperature(cooling_rate), calc_probability,
+            t_max=t_max, t_min=t_min, test_name="Fast Cooling")
         results['fast_cooling'].append(result)
         histories['fast_cooling'].append(history)
     
@@ -248,29 +232,40 @@ def run_multiple_tests(func: BiFunc, num_tests: int = 10):
     
     return results, histories
 
-def commivoyager_annealing_test(x0: Vector, correct_value: float = None):
+def commivoyager_annealing_test(x0: np.ndarray, correct_value: float = None):
     func = BiFuncCallableWrapper(commivoyager, correct_value)
-    x = run_annealing_test(x0, func, BiFuncCallableWrapper(commivoyager_F), calc_temperature(1 - 1e-4), test_name="Коммивояжер")
-    commivoyager_plot(x0, x, "Initial vs Optimized path")
+    result, _ = run_annealing_test(
+        x0, func, BiFuncCallableWrapper(commivoyager_F),
+        calc_temperature(1 - 1e-4), calc_probability,
+        test_name="Коммивояжер"
+    )
+    commivoyager_plot(x0, result['x'], "Initial vs Optimized path")
 
 def random_test(f: BiFunc):
+    """Test annealing algorithm on a random initial point."""
     x0 = np.array([0, 0])
-    run_annealing_test(x0, f, BiFuncCallableWrapper(random_F), calc_temperature(1 - 1e-1), test_name="LOL")
-    
+    result, _ = run_annealing_test(
+        x0, f, BiFuncCallableWrapper(random_F),
+        calc_temperature(1 - 1e-1), calc_probability,
+        t_max=100, t_min=1e-3, test_name="Random Test"
+    )
 
 def main():
     results, histories = run_multiple_tests(frosenbrock, num_tests=10)
     
-    print("\nSummary Statistics:")
-    print("-" * 80)
-    for test_name, test_results in results.items():
-        print(f"\n{test_name}:")
-        print(f"Average iterations: {np.mean([r['iterations'] for r in test_results]):.2f}")
-        print(f"Average function value: {np.mean([r['func_value'] for r in test_results]):.2e}")
-        print(f"Average error: {np.mean([r['error'] for r in test_results]):.2e}")
-        print(f"Best error: {min([r['error'] for r in test_results]):.2e}")
-        print(f"Worst error: {max([r['error'] for r in test_results]):.2e}")
-        print(f"Standard deviation: {np.std([r['error'] for r in test_results]):.2e}")
+    # print("\nSummary Statistics:")
+    # print("-" * 80)
+    # for test_name, test_results in results.items():
+    #     print(f"\n{test_name}:")
+    #     print(f"Average iterations: {np.mean([r['iterations'] for r in test_results]):.2f}")
+    #     print(f"Average function value: {np.mean([r['func_value'] for r in test_results]):.2e}")
+    #     print(f"Average error: {np.mean([r['error'] for r in test_results]):.2e}")
+    #     print(f"Best error: {min([r['error'] for r in test_results]):.2e}")
+    #     print(f"Worst error: {max([r['error'] for r in test_results]):.2e}")
+    #     print(f"Standard deviation: {np.std([r['error'] for r in test_results]):.2e}")
+    
+    x0 = np.array([[random.uniform(0, 200), random.uniform(0, 200)] for _ in range(100)])
+    commivoyager_annealing_test(x0)
 
 if __name__ == "__main__":
     main()

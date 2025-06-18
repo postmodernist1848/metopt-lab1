@@ -43,38 +43,20 @@ def annealing(func: BiFunc,
               s0: Vector,
               t_min: float,
               t_0: Vector,
-              max_iterations: int = 1000) -> Tuple[Vector, int, List[Vector]]:
-    """
-    Simulated annealing algorithm for optimization.
-    
-    Args:
-        func: Objective function to minimize
-        T: Temperature function that takes temperature vector and iteration count
-        F: Function to generate new state
-        P: Probability function
-        s0: Initial state
-        t_min: Minimum temperature
-        t_0: Initial temperature
-        max_iterations: Maximum number of iterations
-        
-    Returns:
-        Tuple containing:
-        - Best state found
-        - Number of iterations performed
-        - History of states
-    """
-    assert t_min > 0, "t_min must be positive"
-    assert t_0[0] > 0, "t_0 must be positive"
-    
+              max_iterations: int = 1000) -> Vector:
     s = s0
     t = t_0
     iter_count = 0
     history = [s.copy()]
     
-    while t[0] > t_min and iter_count < max_iterations:
+    while t[0] > t_min:
         s_new = F(s)
-        if P(func(s_new), func(s)) > np.random.random():
+        ΔE = func(s_new) - func(s)
+        if ΔE <= 0:
             s = s_new
+        else:
+            p = P(ΔE, t[0])
+            s = calc_next_state(s_new, s, p)
         t = T(t, iter_count)
         iter_count += 1
         history.append(s.copy())
