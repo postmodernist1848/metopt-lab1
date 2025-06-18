@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Callable, Optional
+from typing import Callable, Optional, Tuple, List
 from lib.funcs import BiFunc
 import random
 import matplotlib.pyplot as plt
@@ -36,22 +36,50 @@ def calc_probability(ΔE: float, t: float) -> float:
 def calc_next_state(s_next: Vector, s_curr: Vector, p: float) -> Vector:
     return s_next if np.random.rand() < p else s_curr
 
-def annealing(E: BiFunc, T: Callable[[Vector, int], Vector], F: BiFunc, P: Callable[[float, float], float], s0: Vector, t_min: float, t_0: Vector) -> Vector:
-    ti = t_0
-    s_curr = s0
-    k = 0
-
-    while (np.linalg.norm(ti) > t_min):
-        s_next = F(s_curr)
-        ΔE = E(s_next) - E(s_curr)
-        if (ΔE <= 0):
-            s_curr = s_next
-        else:
-            p = P(ΔE, ti)
-            s_curr = calc_next_state(s_next, s_curr, p)
-        ti = T(ti, k)
-        k += 1
-    return s_curr, k
+def annealing(func: BiFunc,
+              T: Callable[[Vector, int], Vector],
+              F: BiFunc,
+              P: Callable[[float, float], float],
+              s0: Vector,
+              t_min: float,
+              t_0: Vector,
+              max_iterations: int = 1000) -> Tuple[Vector, int, List[Vector]]:
+    """
+    Simulated annealing algorithm for optimization.
+    
+    Args:
+        func: Objective function to minimize
+        T: Temperature function that takes temperature vector and iteration count
+        F: Function to generate new state
+        P: Probability function
+        s0: Initial state
+        t_min: Minimum temperature
+        t_0: Initial temperature
+        max_iterations: Maximum number of iterations
+        
+    Returns:
+        Tuple containing:
+        - Best state found
+        - Number of iterations performed
+        - History of states
+    """
+    assert t_min > 0, "t_min must be positive"
+    assert t_0[0] > 0, "t_0 must be positive"
+    
+    s = s0
+    t = t_0
+    iter_count = 0
+    history = [s.copy()]
+    
+    while t[0] > t_min and iter_count < max_iterations:
+        s_new = F(s)
+        if P(func(s_new), func(s)) > np.random.random():
+            s = s_new
+        t = T(t, iter_count)
+        iter_count += 1
+        history.append(s.copy())
+    
+    return s, iter_count, history
 
 # ------------------------------------------------------------
 
@@ -73,22 +101,18 @@ def mutate(individual: Vector, mutation_rate: float = 0.1) -> Vector:
 def genetic(population: Vector,
              crossover: Callable[[Vector, Vector], Vector],
              mutate: Callable[[Vector, float], Vector],
-             fitness_function: BiFunc, tournament_size: int, mutation_rate: float, eps: float, live_plotting: bool = False) -> Vector:
+             fitness_function: BiFunc, tournament_size: int, mutation_rate: float, eps: float, 
+             live_plotting: bool = False, max_iterations: int = 1000) -> Tuple[Vector, int, List[Vector]]:
     assert tournament_size > 0
     assert 1 >= mutation_rate >= 0
     assert eps > 0
 
-    live_plotting = live_plotting and len(population[0].shape) == 2
-
     population_size = len(population)
     curr_population = population
     k = 0
+    history = [curr_population.copy()]
 
-    if live_plotting:   
-        plt.ion()
-        _, ax = plt.subplots(figsize=(10, 6))
-
-    for _ in range(MAX_ITERATIONS):
+    for _ in range(max_iterations):
         # print(f"Iteration {k}")
         new_population = np.zeros_like(curr_population)
         for i in range(population_size):
@@ -98,30 +122,11 @@ def genetic(population: Vector,
             offspring = mutate(offspring, mutation_rate)
             new_population[i] = offspring
         curr_population = new_population
+        history.append(curr_population.copy())
         curr_best = min(curr_population, key=fitness_function)
         k += 1
-
-        if live_plotting:
-            plot_commivoyager(ax, curr_best, fitness_function, k)
 
         if (fitness_function.min() is not None and fitness_function(curr_best) - fitness_function.min() < eps):
             break
 
-    if live_plotting:
-        plt.ioff()
-        plt.show()
-
-    return curr_population, k
-
-def plot_commivoyager(ax, points: Vector, fitness_function: BiFunc, k: int):
-    ax.clear()
-    ax.plot(points[:, 0], points[:, 1], 'b-', alpha=0.3)
-    ax.scatter(points[:, 0], points[:, 1], c='red', s=100)
-    ax.plot([points[-1, 0], points[0, 0]], [points[-1, 1], points[0, 1]], 'b-', alpha=0.3)
-    ax.set_xlabel('x')
-    ax.set_ylabel('y')
-
-    ax.set_title(f'Generation {k}, Best fitness: {fitness_function(points):.2e}')
-    ax.grid(True)
-    plt.draw()
-    plt.pause(1e-7)
+    return curr_population, k, history
